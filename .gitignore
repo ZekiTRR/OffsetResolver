@@ -43,6 +43,9 @@ offsets.cfg
 PROJECT_COMPLETE.md
 SUMMARY.md
 CHANGELOG.md
+POINTER_CHAINS_IMPLEMENTATION.md
+POINTER_CHAINS_QUICKSTART.md
+buildlog.txt
 
 # Backup files
 *.bak

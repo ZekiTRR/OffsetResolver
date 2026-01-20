@@ -14,6 +14,9 @@ set(SOURCES
     ModuleRegistry.cpp
     AddressResolver.cpp
     OffsetStorage.cpp
+    MemoryReader.cpp
+    PointerChainResolver.cpp
+    PointerChainStorage.cpp
     ConsoleUI.cpp
 )
 
@@ -23,6 +26,9 @@ set(HEADERS
     ModuleRegistry.h
     AddressResolver.h
     OffsetStorage.h
+    MemoryReader.h
+    PointerChainResolver.h
+    PointerChainStorage.h
     ConsoleUI.h
 )
 

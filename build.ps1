@@ -14,6 +14,9 @@ $sources = @(
     "ModuleRegistry.cpp",
     "AddressResolver.cpp",
     "OffsetStorage.cpp",
+    "MemoryReader.cpp",
+    "PointerChainResolver.cpp",
+    "PointerChainStorage.cpp",
     "ConsoleUI.cpp"
 )
 

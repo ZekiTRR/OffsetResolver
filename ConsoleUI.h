@@ -3,6 +3,9 @@
 #include "ModuleRegistry.h"
 #include "AddressResolver.h"
 #include "OffsetStorage.h"
+#include "MemoryReader.h"
+#include "PointerChainResolver.h"
+#include "PointerChainStorage.h"
 #include <string>
 
 // ============================================================================
@@ -18,18 +21,23 @@ private:
     ModuleRegistry &m_moduleRegistry;
     AddressResolver &m_addressResolver;
     OffsetStorage &m_offsetStorage;
+    MemoryReader &m_memoryReader;
+    PointerChainResolver &m_pointerChainResolver;
+    PointerChainStorage &m_pointerChainStorage;
 
     std::wstring m_currentConfigFile;
 
 public:
-    ConsoleUI(ProcessManager &pm, ModuleRegistry &mr, AddressResolver &ar, OffsetStorage &os);
+    ConsoleUI(ProcessManager &pm, ModuleRegistry &mr, AddressResolver &ar, OffsetStorage &os,
+              MemoryReader &mr2, PointerChainResolver &pcr, PointerChainStorage &pcs);
 
     // Главное меню
     void ShowMainMenu();
 
     // === Меню режимов работы ===
-    void ShowOffsetManagerMenu(); // Управление оффсетами
-    void ShowModuleDumperMenu();  // Дамп модулей (из base_address.cpp)
+    void ShowOffsetManagerMenu();       // Управление оффсетами
+    void ShowPointerChainManagerMenu(); // Управление цепочками указателей
+    void ShowModuleDumperMenu();        // Дамп модулей (из base_address.cpp)
 
 private:
     // === Offset Manager Функции ===
@@ -39,6 +47,14 @@ private:
     void ResolveOffsetsFlow();
     void ViewOffsetsFlow();
     void SaveOffsetsFlow();
+
+    // === Pointer Chain Manager Функции ===
+    void AddPointerChainFlow();
+    void ResolveAllChainsFlow();
+    void ViewChainValuesFlow();
+    void LoadChainsFromFileFlow();
+    void SaveChainsToFileFlow();
+    void PrintChainList();
 
     // === Module Dumper Функции (из оригинального base_address.cpp) ===
     void DumpModulesToFile();
