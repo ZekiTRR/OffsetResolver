@@ -1,0 +1,65 @@
+# Build directories
+build/
+bin/
+obj/
+out/
+
+# Compiled files
+*.exe
+*.obj
+*.o
+*.pdb
+*.ilk
+*.idb
+
+# Visual Studio
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Logs
+*.log
+
+# User-specific config files
+offsets.cfg
+*_offsets.cfg
+*_modules_dump.txt
+
+# Project documentation
+PROJECT_COMPLETE.md
+SUMMARY.md
+CHANGELOG.md
+
+# Backup files
+*.bak
+*.backup
+backups/
+
+# IDE specific
+.vscode/
+.idea/
+*.code-workspace
+
+# OS specific
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+~*
