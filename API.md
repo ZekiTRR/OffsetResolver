@@ -20,7 +20,7 @@ bool AttachToProcess(const std::wstring& processName);
 Подключается к процессу по имени.
 
 **Параметры**:
-- `processName` — имя процесса (например, `L"csgo.exe"`)
+- `processName` — имя процесса (например, `L"example.exe"`)
 
 **Возвращает**: `true` если успешно, `false` если процесс не найден или нет доступа
 

@@ -48,7 +48,7 @@ Options:
 
 Select option [0-7]: 1
 
-Enter process name (e.g., csgo.exe): notepad.exe
+Enter process name (e.g., example.exe): notepad.exe
 
 [+] Successfully attached to process 'notepad.exe' (PID: 12345)
 [+] Loaded 24 modules.
@@ -65,8 +65,8 @@ Press Enter to continue...
 **Шаг 1: Подключиться к процессу**
 ```
 Select option [0-7]: 1
-Enter process name: csgo.exe
-[+] Successfully attached to process 'csgo.exe' (PID: 23456)
+Enter process name: example.exe
+[+] Successfully attached to process 'example.exe' (PID: 23456)
 [+] Loaded 156 modules.
 ```
 
@@ -77,7 +77,7 @@ Select option [0-7]: 7
 === Module List ===
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
-csgo.exe                            | 0x7FF7A1D00000   | 0x37E000
+example.exe                         | 0x7FF7A1D00000   | 0x37E000
 client.dll                          | 0x7FF6A2000000   | 0x1A3C000
 engine.dll                          | 0x7FF6A5000000   | 0xB3D000
 server.dll                          | 0x7FF6A8000000   | 0x2F7000
@@ -112,13 +112,13 @@ Select option [0-7]: 6
 No offsets to save? No!
 [✓] Offsets: 4 in storage
 
-Enter filename to save (e.g., offsets.cfg): csgo_offsets.cfg
-[+] Saved 4 offsets to csgo_offsets.cfg
+Enter filename to save (e.g., offsets.cfg): app_offsets.cfg
+[+] Saved 4 offsets to app_offsets.cfg
 
 Press Enter to continue...
 ```
 
-**Результат (csgo_offsets.cfg)**:
+**Результат (app_offsets.cfg)**:
 ```ini
 # Offset Configuration File
 # Format: ModuleName+0xOffset=Description
@@ -137,13 +137,13 @@ engine.dll+0x590DD0=ClientState
 
 ```
 Select option [0-7]: 1
-Enter process name: csgo.exe
-[+] Successfully attached to process 'csgo.exe' (PID: 34567)  ← Новый PID!
+Enter process name: example.exe
+[+] Successfully attached to process 'example.exe' (PID: 34567)  ← Новый PID!
 [+] Loaded 156 modules.
 
 Select option [0-7]: 2
-Enter config filename: csgo_offsets.cfg
-[+] Loaded 4 offsets from csgo_offsets.cfg
+Enter config filename: app_offsets.cfg
+[+] Loaded 4 offsets from app_offsets.cfg
 
 Select option [0-7]: 4
 
@@ -187,31 +187,31 @@ Select option [0-2]: 2
 ║              Module Dumper Mode                   ║
 ╚═══════════════════════════════════════════════════╝
 
-Enter process name (e.g., hl2.exe): hl2.exe
-[+] Successfully attached to process 'hl2.exe' (PID: 45678)
+Enter process name (e.g., app.exe): app.exe
+[+] Successfully attached to process 'app.exe' (PID: 45678)
 [+] Loaded 89 modules.
 
 === Module List ===
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
-hl2.exe                             | 0x7FF6A1000000   | 0x2A4000
+app.exe                             | 0x7FF6A1000000   | 0x2A4000
 client.dll                          | 0x7FF6A3000000   | 0x1B5C000
 engine.dll                          | 0x7FF6A5000000   | 0xC4D000
 ...
 
 Save to file? (y/n): y
-[+] Module list saved to hl2.exe_modules_dump.txt
+[+] Module list saved to app_modules_dump.txt
 
 Press Enter to continue...
 ```
 
-**Результат (hl2.exe_modules_dump.txt)**:
+**Результат (app_modules_dump.txt)**:
 ```
-Process: hl2.exe (PID: 45678)
+Process: app.exe (PID: 45678)
 
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
-hl2.exe                             | 0x7FF6A1000000   | 0x2A4000
+app.exe                             | 0x7FF6A1000000   | 0x2A4000
 client.dll                          | 0x7FF6A3000000   | 0x1B5C000
 engine.dll                          | 0x7FF6A5000000   | 0xC4D000
 ...
@@ -234,18 +234,18 @@ engine.dll                          | 0x7FF6A5000000   | 0xC4D000
 
 2. **Сохранить в приложение**:
    ```
-   Offset Manager → Attach to csgo.exe → Add offset:
+   Offset Manager → Attach to example.exe → Add offset:
    Module: client.dll
    Offset: 0xDEA964
-   Description: LocalPlayer
+   Description: DataPointer
    ```
 
-3. **Сохранить конфигурацию**: `Save → csgo_offsets.cfg`
+3. **Сохранить конфигурацию**: `Save → app_offsets.cfg`
 
-4. **При каждом запуске чита**:
+4. **При каждом запуске приложения**:
    ```cpp
    // Загружаем оффсеты
-   offsetStorage.LoadFromFile(L"csgo_offsets.cfg");
+   offsetStorage.LoadFromFile(L"app_offsets.cfg");
    
    // Разрешаем адреса
    addressResolver.ResolveAll(offsetStorage);

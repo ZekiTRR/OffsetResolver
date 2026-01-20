@@ -204,10 +204,10 @@ User Action                      System Response
 1. Start application             → ConsoleUI: ShowMainMenu()
 2. Select "Offset Manager"       → ConsoleUI: ShowOffsetManagerMenu()
 3. Select "Attach to process"    → ConsoleUI: AttachToProcessFlow()
-4. Enter "csgo.exe"              → ProcessManager: AttachToProcess("csgo.exe")
+4. Enter "example.exe"              → ProcessManager: AttachToProcess("example.exe")
                                  → Find PID via CreateToolhelp32Snapshot
                                  → OpenProcess(PROCESS_VM_READ, pid)
-                                 → Success: "Attached to csgo.exe (PID: 12345)"
+                                 → Success: "Attached to example.exe (PID: 12345)"
                                  
 5. Auto-load modules             → ModuleRegistry: LoadModules(12345)
                                  → CreateToolhelp32Snapshot(TH32CS_SNAPMODULE)
@@ -218,7 +218,7 @@ User Action                      System Response
 6. Select "Add new offset"       → ConsoleUI: AddOffsetFlow()
 7. Enter "client.dll"            → Validate module exists in registry
 8. Enter "0xDEA964"              → Parse hex value
-9. Enter "LocalPlayer"           → Set description
+9. Enter "Pointer1"              → Set description
                                  → OffsetStorage: AddOffset(entry)
                                  → "Offset added successfully"
                                  
@@ -239,7 +239,7 @@ User Action                      System Response
 ───────────────────────────────  ─────────────────────────────────────
 1. Start application             → ConsoleUI: ShowMainMenu()
 2. Select "Offset Manager"       → ConsoleUI: ShowOffsetManagerMenu()
-3. Select "Attach to process"    → ProcessManager: AttachToProcess("csgo.exe")
+3. Select "Attach to process"    → ProcessManager: AttachToProcess("example.exe")
                                  → NEW PID: 23456 (process restarted)
                                  → ModuleRegistry: LoadModules(23456)
                                  → NEW module bases due to ASLR!
@@ -264,7 +264,7 @@ User Action                      System Response
 7. Select "View offsets"         → OffsetStorage: PrintOffsets()
                                  → Display table with NEW addresses:
                                  
-                                   client.dll | 0xDEA964 | 0x7FF7A3DEA964 | LocalPlayer
+                                   client.dll | 0xDEA964 | 0x7FF7A3DEA964 | Pointer1
                                    (previous: 0x7FF6A2DEA964 - ASLR changed!)
 ```
 

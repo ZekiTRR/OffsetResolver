@@ -89,7 +89,7 @@ Or with CMake / Visual Studio.
 
 ```
 1. Choose "Offset Manager"
-2. Attach to process → enter process name (csgo.exe)
+2. Attach to process → enter process name (example.exe)
 3. Program loads all modules
 4. Add new offset:
    - Module: client.dll
@@ -103,7 +103,7 @@ Or with CMake / Visual Studio.
 
 ```
 1. Offset Manager
-2. Attach to process → csgo.exe
+2. Attach to process → example.exe
 3. Load offsets from file → offsets.cfg
 4. Resolve all offsets
 5. View offsets — see actual addresses accounting for new ASLR
@@ -229,7 +229,7 @@ Process-Module-Dumper/
 ====================================================
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
-csgo.exe                            | 0x7FF7A1D00000   | 0x37E000
+example.exe                         | 0x7FF7A1D00000   | 0x37E000
 client.dll                          | 0x7FF6A2000000   | 0x1A3C000
 engine.dll                          | 0x7FF6A5000000   | 0xB3D000
 ```
@@ -272,7 +272,7 @@ Use responsibly and in accordance with the law.
 
 ## 👤 Author
 
-Developed as a tool for analyzing and debugging game processes.
+Developed as a tool for analyzing and debugging application processes.
 
 ---
 

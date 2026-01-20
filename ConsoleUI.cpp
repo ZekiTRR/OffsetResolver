@@ -126,7 +126,7 @@ void ConsoleUI::ShowModuleDumperMenu()
     std::wcout << L"              Module Dumper Mode                     \n";
     std::wcout << L"====================================================\n\n";
 
-    std::wstring processName = GetInput(L"Enter process name (e.g., hl2.exe)");
+    std::wstring processName = GetInput(L"Enter process name (e.g., example.exe)");
 
     if (!m_processManager.AttachToProcess(processName))
     {
@@ -160,7 +160,7 @@ void ConsoleUI::ShowModuleDumperMenu()
 
 void ConsoleUI::AttachToProcessFlow()
 {
-    std::wstring processName = GetInput(L"Enter process name (e.g., csgo.exe)");
+    std::wstring processName = GetInput(L"Enter process name (e.g., example.exe)");
 
     if (m_processManager.AttachToProcess(processName))
     {

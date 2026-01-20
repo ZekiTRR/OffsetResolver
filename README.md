@@ -83,9 +83,10 @@ Console application for Windows x64 that helps manage memory offsets safely acro
 ```ini
 # Format: ModuleName+0xHexOffset=Description
 
-client.dll+0xDEA964=LocalPlayer
-client.dll+0x4DCC098=EntityList
-engine.dll+0x58EFC4=ViewAngles
+client.dll+0xDEA964=Pointer1
+client.dll+0x4DCC098=Pointer2
+engine.dll+0x58EFC4=Pointer3
+```
 ```
 
 ---
@@ -131,9 +132,7 @@ Process-Module-Dumper/
 │   ├── EXAMPLES.md
 │   ├── API.md
 │   ├── BUILD.md
-│   ├── SUMMARY.md
 │   ├── VISUAL_STRUCTURE.md
-│   ├── CHANGELOG.md
 │   └── INDEX.md
 │
 ├── [Documentation - Russian]
@@ -144,9 +143,7 @@ Process-Module-Dumper/
 │       ├── EXAMPLES.md
 │       ├── API.md
 │       ├── BUILD.md
-│       ├── SUMMARY.md
 │       ├── VISUAL_STRUCTURE.md
-│       ├── CHANGELOG.md
 │       └── INDEX.md
 │
 ├── [Build]
@@ -173,7 +170,7 @@ Process-Module-Dumper/
 
 ## 🔍 Use Cases
 
-1. **Game Modding** - Track pointers through game updates
+1. **Process Analysis** - Track pointers across application updates
 2. **Security Research** - Map process memory layout
 3. **Vulnerability Analysis** - Identify data structures
 4. **Reverse Engineering** - Educational tool
@@ -183,11 +180,11 @@ Process-Module-Dumper/
 
 ## 📜 License
 
-Создано для образовательных целей в области реверс-инжиниринга.  
-Использовать ответственно и в соответствии с законодательством.
+Created for educational purposes in the field of reverse engineering.  
+Use responsibly and in accordance with the law.
 
 ---
 
-## 👤 Автор
+## 👤 Author
 
-Разработано как инструмент для анализа и отладки игровых процессов.
+Developed as a tool for analyzing and debugging application processes.

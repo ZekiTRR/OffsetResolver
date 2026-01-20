@@ -156,7 +156,7 @@ Process-Module-Dumper/
 ├─────────────────────────────────────────────────────────────┤
 │ + moduleName: wstring          "client.dll"                 │
 │ + offset: uintptr_t             0xDEA964                    │
-│ + description: wstring         "LocalPlayer"                │
+│ + description: wstring         \"Pointer1\"                 │
 │                                                             │
 │ Runtime (не сохраняются в файл):                            │
 │ + resolvedAddress: uintptr_t    0x7FF6A2DEA964              │
@@ -172,7 +172,7 @@ Process-Module-Dumper/
                     Запуск 1                    Запуск 2
                     ────────                    ────────
 
-Process Start    → hl2.exe                   → hl2.exe
+Process Start    → app.exe                   → app.exe
                    
 Module Load      → client.dll                → client.dll
                    ├─ Base: 0x7FF6A2000000    ├─ Base: 0x7FF7A3000000  ← ИЗМЕНИЛСЯ!
@@ -232,7 +232,7 @@ User                           System
 Start app                  →   ShowMainMenu()
 Select "Offset Manager"    →   ShowOffsetManagerMenu()
 Select "Attach"            →   ProcessManager::AttachToProcess()
-Enter "csgo.exe"           →   • Find PID: 12345
+Enter "example.exe"           →   • Find PID: 12345
                                • OpenProcess(12345)
                                • ModuleRegistry::LoadModules(12345)
                                • Load 156 modules
@@ -263,7 +263,7 @@ User                           System
 Start app                  →   ShowMainMenu()
 Select "Offset Manager"    →   ShowOffsetManagerMenu()
 Select "Attach"            →   ProcessManager::AttachToProcess()
-Enter "csgo.exe"           →   • NEW PID: 23456  ← Процесс перезапущен!
+Enter "example.exe"           →   • NEW PID: 23456  ← Процесс перезапущен!
                                • ModuleRegistry::LoadModules(23456)
                                • client.dll now at 0x7FF7A3000000
                                  (was 0x7FF6A2000000 before!)

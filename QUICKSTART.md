@@ -129,11 +129,11 @@ Load in application → View resolved addresses → Done!
 
 ### Module List
 ```
-Module List from process 'csgo.exe':
+Module List from process 'example.exe':
 
 Module Name                    | Base Address     | Size
 ======================================================================
-csgo.exe                       | 0x7FF7A1D00000   | 0x37E000
+example.exe                    | 0x7FF7A1D00000   | 0x37E000
 client.dll                     | 0x7FF6A2000000   | 0x1A3C000
 engine.dll                     | 0x7FF6A5000000   | 0xB3D000
 server.dll                     | 0x7FF6AA000000   | 0x2C5000
@@ -247,31 +247,31 @@ Questions? See [EXAMPLES.md](EXAMPLES.md) for common scenarios.
 
 ---
 
-## 🎮 Реальный пример (CS:GO)
+## � Реальный пример (Пример приложения)
 
 ### Создание конфигурации
 
 ```
-1. Запустите CS:GO
+1. Запустите приложение
 2. Запустите ProcessModuleManager.exe
 3. Выберите Offset Manager
-4. Attach to process → csgo.exe
+4. Attach to process → example.exe
 5. Добавьте оффсеты:
 
-   client.dll + 0xDEA964  = LocalPlayer
-   client.dll + 0x4DCC098 = EntityList
-   engine.dll + 0x58EFC4  = ViewAngles
+   client.dll + 0xDEA964  = Pointer1
+   client.dll + 0x4DCC098 = Pointer2
+   engine.dll + 0x58EFC4  = Pointer3
 
-6. Save → csgo_offsets.cfg
+6. Save → app_offsets.cfg
 ```
 
 ### Использование конфигурации
 
 ```
-1. Перезапустите CS:GO (ASLR изменит адреса!)
+1. Перезапустите приложение (ASLR изменит адреса!)
 2. Запустите ProcessModuleManager.exe
-3. Offset Manager → Attach → csgo.exe
-4. Load offsets → csgo_offsets.cfg
+3. Offset Manager → Attach → example.exe
+4. Load offsets → app_offsets.cfg
 5. Resolve all offsets
 6. View offsets → видите актуальные адреса!
 ```

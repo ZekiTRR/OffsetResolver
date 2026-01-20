@@ -48,7 +48,7 @@ Options:
 
 Select option [0-7]: 1
 
-Enter process name (e.g., csgo.exe): notepad.exe
+Enter process name (e.g., example.exe): notepad.exe
 
 [+] Successfully attached to process 'notepad.exe' (PID: 12345)
 [+] Loaded 24 modules.
@@ -65,8 +65,8 @@ Press Enter to continue...
 **Шаг 1: Подключиться к процессу**
 ```
 Select option [0-7]: 1
-Enter process name: csgo.exe
-[+] Successfully attached to process 'csgo.exe' (PID: 23456)
+Enter process name: example.exe
+[+] Successfully attached to process 'example.exe' (PID: 23456)
 [+] Loaded 156 modules.
 ```
 
@@ -77,7 +77,7 @@ Select option [0-7]: 7
 === Module List ===
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
-csgo.exe                            | 0x7FF7A1D00000   | 0x37E000
+example.exe                         | 0x7FF7A1D00000   | 0x37E000
 client.dll                          | 0x7FF6A2000000   | 0x1A3C000
 engine.dll                          | 0x7FF6A5000000   | 0xB3D000
 server.dll                          | 0x7FF6A8000000   | 0x2F7000
@@ -112,13 +112,13 @@ Select option [0-7]: 6
 No offsets to save? No!
 [✓] Offsets: 4 in storage
 
-Enter filename to save (e.g., offsets.cfg): csgo_offsets.cfg
-[+] Saved 4 offsets to csgo_offsets.cfg
+Enter filename to save (e.g., offsets.cfg): app_offsets.cfg
+[+] Saved 4 offsets to app_offsets.cfg
 
 Press Enter to continue...
 ```
 
-**Результат (csgo_offsets.cfg)**:
+**Результат (app_offsets.cfg)**:
 ```ini
 # Offset Configuration File
 # Format: ModuleName+0xOffset=Description
@@ -137,13 +137,13 @@ engine.dll+0x590DD0=ClientState
 
 ```
 Select option [0-7]: 1
-Enter process name: csgo.exe
-[+] Successfully attached to process 'csgo.exe' (PID: 34567)  ← Новый PID!
+Enter process name: example.exe
+[+] Successfully attached to process 'example.exe' (PID: 34567)  ← Новый PID!
 [+] Loaded 156 modules.
 
 Select option [0-7]: 2
-Enter config filename: csgo_offsets.cfg
-[+] Loaded 4 offsets from csgo_offsets.cfg
+Enter config filename: app_offsets.cfg
+[+] Loaded 4 offsets from app_offsets.cfg
 
 Select option [0-7]: 4
 
@@ -187,31 +187,31 @@ Select option [0-2]: 2
 ║              Module Dumper Mode                   ║
 ╚═══════════════════════════════════════════════════╝
 
-Enter process name (e.g., hl2.exe): hl2.exe
-[+] Successfully attached to process 'hl2.exe' (PID: 45678)
+Enter process name (e.g., app.exe): app.exe
+[+] Successfully attached to process 'app.exe' (PID: 45678)
 [+] Loaded 89 modules.
 
 === Module List ===
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
-hl2.exe                             | 0x7FF6A1000000   | 0x2A4000
+app.exe                             | 0x7FF6A1000000   | 0x2A4000
 client.dll                          | 0x7FF6A3000000   | 0x1B5C000
 engine.dll                          | 0x7FF6A5000000   | 0xC4D000
 ...
 
 Save to file? (y/n): y
-[+] Module list saved to hl2.exe_modules_dump.txt
+[+] Module list saved to app_modules_dump.txt
 
 Press Enter to continue...
 ```
 
-**Результат (hl2.exe_modules_dump.txt)**:
+**Результат (app_modules_dump.txt)**:
 ```
-Process: hl2.exe (PID: 45678)
+Process: app.exe (PID: 45678)
 
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
-hl2.exe                             | 0x7FF6A1000000   | 0x2A4000
+app.exe                             | 0x7FF6A1000000   | 0x2A4000
 client.dll                          | 0x7FF6A3000000   | 0x1B5C000
 engine.dll                          | 0x7FF6A5000000   | 0xC4D000
 ...
@@ -221,69 +221,43 @@ engine.dll                          | 0x7FF6A5000000   | 0xC4D000
 
 ## Реальные сценарии
 
-### Сценарий 1: Разработка игрового чита
+### Сценарий 1: Анализ и исследование процесса
 
-**Цель**: Найти адрес локального игрока в CS:GO для чтения HP/позиции.
+**Цель**: Поиск адресов данных для мониторинга.
 
 **Действия**:
 
-1. **Найти оффсет с помощью Cheat Engine**:
-   - Найдите адрес LocalPlayer: `0x7FF6A2DEA964`
+1. **Найти адрес**:
+   - Найдите адрес данных: `0x7FF6A2DEA964`
    - База client.dll: `0x7FF6A2000000`
-   - Рассчитайте оффсет: `0xDEA964 - 0x000000 = 0xDEA964`
+   - Оффсет: `0xDEA964 - 0x000000 = 0xDEA964`
 
 2. **Сохранить в приложение**:
    ```
-   Offset Manager → Attach to csgo.exe → Add offset:
+   Offset Manager → Attach to example.exe → Add offset:
    Module: client.dll
    Offset: 0xDEA964
-   Description: LocalPlayer
+   Description: DataPointer
    ```
 
-3. **Сохранить конфигурацию**: `Save → csgo_offsets.cfg`
+3. **Сохранить конфигурацию**: `Save → app_offsets.cfg`
 
-4. **При каждом запуске чита**:
+4. **При каждом запуске приложения**:
    ```cpp
    // Загружаем оффсеты
-   offsetStorage.LoadFromFile(L"csgo_offsets.cfg");
+   offsetStorage.LoadFromFile(L"app_offsets.cfg");
    
    // Разрешаем адреса
    addressResolver.ResolveAll(offsetStorage);
    
-   // Используем в коде
-   uintptr_t localPlayerAddr = offsets[0].resolvedAddress;
-   // Читаем HP, позицию и т.д.
+   // Отслеживаем данные
+   uintptr_t dataAddr = offsets[0].resolvedAddress;
+   // Отслеживаем исследиваемые данные
    ```
 
 ---
 
-### Сценарий 2: Автоматизация тестирования игры
-
-**Цель**: Автоматически читать состояние игры для ботов/AI.
-
-**Пример конфигурации (game_state_offsets.cfg)**:
-```ini
-# Game state offsets
-client.dll+0xDEA964=LocalPlayer
-client.dll+0x4DCC098=EntityList
-client.dll+0x52BBFE0=GlowManager
-engine.dll+0x58EFC4=ViewAngles
-engine.dll+0x590DD0=ClientState
-engine.dll+0x5A14A0=MaxPlayers
-```
-
-**Использование**:
-```
-1. Запускаем приложение
-2. Attach to game.exe
-3. Load offsets from game_state_offsets.cfg
-4. Resolve all offsets
-5. Экспортируем resolved адреса в JSON для бота
-```
-
----
-
-### Сценарий 3: Debugging/Reverse Engineering
+### Сценарий 2: Debugging/Reverse Engineering
 
 **Цель**: Исследовать внутреннюю структуру приложения.
 
@@ -318,9 +292,9 @@ engine.dll+0x5A14A0=MaxPlayers
 
 Создавайте отдельные конфигурации:
 ```
-csgo_offsets.cfg
-dota2_offsets.cfg
-hl2_offsets.cfg
+app1_offsets.cfg
+app2_offsets.cfg
+app3_offsets.cfg
 ```
 
 При загрузке просто выбираете нужный файл.
@@ -474,16 +448,13 @@ proc.communicate(b"1\n1\ncsgo.exe\n2\noffsets.cfg\n4\n5\n0\n0\n")
 
 ---
 
-### Q: Работает ли с играми с античитом?
+### Q: Работает ли с приложениями с защитою?
 
 **A**: **НЕТ!**
 
-Приложение использует стандартные WinAPI функции, которые блокируются античитами:
-- EasyAntiCheat
-- BattlEye
-- Vanguard (Valorant)
+Приложение использует стандартные WinAPI функции, которые блокируются защитными системами приложений.
 
-**Для research/testing используйте версии игр без античита или offline режим.**
+**Для research/testing используюте тестовые версии или offline режим.**
 
 ---
 
@@ -491,26 +462,26 @@ proc.communicate(b"1\n1\ncsgo.exe\n2\noffsets.cfg\n4\n5\n0\n0\n")
 
 ### Counter-Strike: Source
 ```ini
-# cs_source_offsets.cfg
-client.dll+0x4A2D24=LocalPlayer
-client.dll+0x489E84=EntityList
-engine.dll+0x4D3F0C=ViewAngles
+# app_offsets.cfg
+client.dll+0x4A2D24=Pointer1
+client.dll+0x489E84=Pointer2
+engine.dll+0x4D3F0C=Pointer3
 ```
 
 ### Half-Life 2
 ```ini
-# hl2_offsets.cfg
-client.dll+0x5B7A94=LocalPlayer
-engine.dll+0x4A54DC=ViewAngles
+# app_offsets.cfg
+client.dll+0x5B7A94=Pointer1
+engine.dll+0x4A54DC=Pointer2
 ```
 
-### Source Engine Generic
+### Generic Configuration
 ```ini
-# source_generic.cfg
-# These offsets may work across multiple Source games
+# app_generic.cfg
+# These offsets may work across multiple versions
 
-client.dll+0x?????=LocalPlayer     # Find with CE
-engine.dll+0x?????=ViewAngles      # Pattern: F3 0F 10 48
+client.dll+0x?????=Pointer1     # Find with CE
+engine.dll+0x?????=Pointer2     # Pattern scanning
 ```
 
 ---

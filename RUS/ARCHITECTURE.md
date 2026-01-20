@@ -204,10 +204,10 @@ User Action                      System Response
 1. Start application             → ConsoleUI: ShowMainMenu()
 2. Select "Offset Manager"       → ConsoleUI: ShowOffsetManagerMenu()
 3. Select "Attach to process"    → ConsoleUI: AttachToProcessFlow()
-4. Enter "csgo.exe"              → ProcessManager: AttachToProcess("csgo.exe")
+4. Enter "example.exe"              → ProcessManager: AttachToProcess("example.exe")
                                  → Find PID via CreateToolhelp32Snapshot
                                  → OpenProcess(PROCESS_VM_READ, pid)
-                                 → Success: "Attached to csgo.exe (PID: 12345)"
+                                 → Success: "Attached to example.exe (PID: 12345)"
                                  
 5. Auto-load modules             → ModuleRegistry: LoadModules(12345)
                                  → CreateToolhelp32Snapshot(TH32CS_SNAPMODULE)
