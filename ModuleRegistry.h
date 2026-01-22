@@ -6,47 +6,47 @@
 #include <map>
 
 // ============================================================================
-// ModuleRegistry: Реестр модулей процесса
-// Назначение: получение и хранение информации о загруженных модулях
-// ImageBase, SizeOfImage для каждого модуля
+// ModuleRegistry: Process module registry
+// Purpose: Retrieve and store loaded module information
+// ImageBase, SizeOfImage for each module
 // ============================================================================
 
 struct ModuleInfo
 {
-    std::wstring name;     // Имя модуля (например, "client.dll")
-    uintptr_t baseAddress; // ImageBase (базовый адрес)
-    uintptr_t size;        // SizeOfImage (размер модуля)
+    std::wstring name;     // Module name (e.g., "app.dll")
+    uintptr_t baseAddress; // ImageBase (base address)
+    uintptr_t size;        // SizeOfImage (module size)
 };
 
 class ModuleRegistry
 {
 private:
     std::vector<ModuleInfo> m_modules;
-    std::map<std::wstring, ModuleInfo> m_moduleMap; // Для быстрого поиска по имени
+    std::map<std::wstring, ModuleInfo> m_moduleMap; // Fast lookup by name
     DWORD m_pid;
     bool m_isLoaded;
 
 public:
     ModuleRegistry();
 
-    // Загрузка списка модулей для указанного процесса
+    // Load module list for specified process
     bool LoadModules(DWORD pid);
 
-    // Получение списка всех модулей
+    // Get all modules list
     const std::vector<ModuleInfo> &GetModules() const { return m_modules; }
 
-    // Поиск модуля по имени (регистронезависимый)
+    // Find module by name (case-insensitive)
     bool FindModule(const std::wstring &moduleName, ModuleInfo &outInfo) const;
 
-    // Получение базового адреса модуля
+    // Get module base address
     uintptr_t GetModuleBase(const std::wstring &moduleName) const;
 
-    // Проверка, загружены ли модули
+    // Check if modules are loaded
     bool IsLoaded() const { return m_isLoaded; }
 
-    // Очистка реестра
+    // Clear registry
     void Clear();
 
-    // Вывод списка модулей в консоль
+    // Print module list to console
     void PrintModules() const;
 };

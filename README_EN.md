@@ -1,64 +1,56 @@
 # Process Module & Offset Management Tool
 
-Console application for Windows (x64) for managing offsets and process modules in reverse engineering context.
+Console application for Windows (x64) for managing offsets, pointer chains, and process modules in reverse engineering context.
 
 **[Russian Version / Русская версия](RUS/README.md)**
 
 ## 🎯 Purpose
 
 - **ASLR Protection**: Store offsets in "module + offset" format instead of absolute addresses
+- **Pointer Chain Resolution**: Resolve multi-level pointer chains with automatic memory reading
 - **Automatic Recalculation**: Automatically recalculate actual addresses on each launch
 - **Module Export**: Save process module list with base addresses
+- **Debug Mode**: Built-in debugging system with colored console output and file logging
 - **Portability**: Configuration works after process/system restart
 
 ---
 
 ## 🏗️ Architecture
 
-Application divided into 5 logical modules:
+Application divided into 8 logical modules:
 
-### 1. **ProcessManager**
-- Process search by name
-- PID retrieval
-- Process handle opening
-- Connection lifecycle management
-
-### 2. **ModuleRegistry**
-- Get list of loaded modules
-- Store ImageBase and SizeOfImage for each module
-- Fast module search by name (case-insensitive)
-
-### 3. **AddressResolver**
-- Absolute address recalculation: `resolved_address = module_base + offset`
-- Automatic offset resolution from configuration
-- Handle cases when module not found
-
-### 4. **OffsetStorage**
-- Load offsets from text file
-- Save offsets (absolute addresses are NOT saved)
-- Format: `module+offset=description`
-
-### 5. **ConsoleUI**
-- Navigation menu
-- User interaction
-- Table output and status
+| Module | Purpose |
+|--------|---------|
+| **ProcessManager** | Process search, PID retrieval, handle management |
+| **ModuleRegistry** | Module enumeration, ImageBase/Size storage |
+| **AddressResolver** | Calculate absolute addresses from module+offset |
+| **OffsetStorage** | Load/save offsets in INI format |
+| **MemoryReader** | Safe memory reading with validation |
+| **PointerChainResolver** | Multi-level pointer chain resolution |
+| **PointerChainStorage** | Save/load pointer chains |
+| **DebugLog** | Debug output with colors and file logging |
+| **ConsoleUI** | Interactive menu system |
 
 ---
 
-## 📝 Configuration Format
+## 📝 Configuration Formats
 
-### Example file `offsets.cfg`:
+### Offset Configuration (`offsets.cfg`):
 
 ```ini
-# Offset Configuration File
 # Format: ModuleName+0xOffset=Description
-# Example: client.dll+0xDEA964=LocalPlayer
+app.dll+0xDEA964=Pointer1
+app.dll+0x4DCC098=Pointer2
+module2.dll+0x58EFC4=Pointer3
+```
 
-client.dll+0xDEA964=LocalPlayer
-client.dll+0x4DCC098=EntityList
-engine.dll+0x58EFC4=ViewAngles
-engine.dll+0x590DD0=ClientState
-server.dll+0x2F6A20=GlobalVars
+### Pointer Chain Configuration (`chains.txt`):
+
+```
+# Format: moduleName|baseOffset|offsets|valueType|description
+app.dll|0x17E0A8|0xEC|int|Health
+app.dll|0x17E0A8|0xF0|int|MaxHealth
+app.dll|0x17E0A8|0x18,0x70,0x2D0|float|PositionX
 ```
 
 ---
@@ -85,54 +77,66 @@ Or with CMake / Visual Studio.
 
 ## 🎓 Usage Scenarios
 
-### Scenario 1: First run (creating configuration)
+### Scenario 1: Offset Management
 
 ```
 1. Choose "Offset Manager"
-2. Attach to process → enter process name (example.exe)
-3. Program loads all modules
-4. Add new offset:
-   - Module: client.dll
-   - Offset: 0xDEA964
-   - Description: LocalPlayer
-5. Add remaining offsets
-6. Save offsets to file → offsets.cfg
-```
-
-### Scenario 2: Repeated run (loading configuration)
-
-```
-1. Offset Manager
 2. Attach to process → example.exe
-3. Load offsets from file → offsets.cfg
-4. Resolve all offsets
-5. View offsets — see actual addresses accounting for new ASLR
+3. Add new offset:
+   - Module: app.dll
+   - Offset: 0xDEA964
+   - Description: MyPointer
+4. Save offsets → offsets.cfg
+5. On next run: load offsets → resolve → see new addresses
 ```
 
-### Scenario 3: Export modules
+### Scenario 2: Pointer Chain Resolution
 
 ```
-1. Module Dumper
-2. Enter process name
-3. Module list displays on screen
-4. Optionally save to file
+1. Choose "Pointer Chain Manager"
+2. Attach to process → example.exe
+3. Add pointer chain:
+   - Module: app.dll
+   - Base offset: 0x17E0A8
+   - Offsets: 0xEC (or 0x18,0x70,0x2D0 for multi-level)
+   - Type: int
+4. Resolve chains → view values
+```
+
+### Scenario 3: Debug Mode
+
+```
+1. Type "debug" in main menu → enable detailed logging
+2. Type "debugfile" → also save to debug_log.txt
+3. Perform operations → see step-by-step logs
+4. Check debug_log.txt for history
 ```
 
 ---
 
-## ✅ Key Features
+## 🔧 Debug System
 
-### What it does:
-- ✅ Stores offsets in readable format
-- ✅ Automatically recalculates addresses on launch
-- ✅ Works with ASLR without issues
-- ✅ No external dependencies required
-- ✅ Ready for extension (pattern scanner, memory reader)
+Built-in debugging provides:
 
-### What it doesn't do:
-- ❌ Doesn't save absolute addresses
-- ❌ Doesn't read/write process memory (yet)
-- ❌ Doesn't search patterns (can be added)
+- **Colored console output**: Info (cyan), Success (green), Warning (yellow), Error (red)
+- **Step-by-step logging**: Track every operation
+- **Address tracing**: See pointer chain resolution step by step
+- **File logging**: Save debug output to `debug_log.txt`
+- **Handle validation**: Detect invalid handles early
+
+---
+
+## ✅ Features
+
+| Feature | Status |
+|---------|--------|
+| Offset storage (module+offset) | ✅ |
+| Multi-level pointer chains | ✅ |
+| Memory reading (int/float/double) | ✅ |
+| ASLR support | ✅ |
+| Debug mode | ✅ |
+| File logging | ✅ |
+| No external dependencies | ✅ |
 
 ---
 
@@ -141,141 +145,90 @@ Or with CMake / Visual Studio.
 ### OffsetEntry
 ```cpp
 struct OffsetEntry {
-    std::wstring moduleName;     // client.dll
+    std::wstring moduleName;     // app.dll
     uintptr_t offset;            // 0xDEA964
-    std::wstring description;    // LocalPlayer
-    
-    // Runtime (not saved to file):
-    uintptr_t resolvedAddress;   // 0x7FF6A2DEA964
-    bool isResolved;             // true/false
+    std::wstring description;    // Pointer1
+    uintptr_t resolvedAddress;   // Runtime: calculated address
+    bool isResolved;             // Runtime: resolution status
 };
 ```
 
-### ModuleInfo
+### PointerChain
 ```cpp
-struct ModuleInfo {
-    std::wstring name;           // client.dll
-    uintptr_t baseAddress;       // 0x7FF6A2000000 (ImageBase)
-    uintptr_t size;              // 0x1A3C000 (SizeOfImage)
+struct PointerChain {
+    std::wstring moduleName;        // app.dll
+    uintptr_t baseOffset;           // 0x17E0A8
+    std::vector<uintptr_t> offsets; // [0x18, 0x70, 0x2D0]
+    ValueType valueType;            // INT / FLOAT / DOUBLE
+    std::wstring description;       // Health
+    uintptr_t resolvedAddress;      // Runtime: final address
+    MemoryValue currentValue;       // Runtime: read value
+    bool isResolved;
+    std::wstring lastError;
 };
 ```
 
 ---
 
-## 🔧 Extension Points
+## 📁 Project Structure
 
-### Ready for extension:
-
-1. **Pattern Scanner** — add in `ModuleRegistry::FindPattern()`
-2. **Memory Reader** — add in `ProcessManager::ReadMemory()`
-3. **Signature Updater** — auto-update offsets using signatures
-4. **JSON format** — instead of INI for complex structures
-
-See [API.md](API.md) for details.
+```
+Process-Module-Dumper/
+├── Source Code (11 files)
+│   ├── main.cpp
+│   ├── ProcessManager.h/.cpp
+│   ├── ModuleRegistry.h/.cpp
+│   ├── AddressResolver.h/.cpp
+│   ├── OffsetStorage.h/.cpp
+│   ├── MemoryReader.h/.cpp
+│   ├── PointerChainResolver.h/.cpp
+│   ├── PointerChainStorage.h/.cpp
+│   ├── ConsoleUI.h/.cpp
+│   └── DebugLog.h/.cpp
+│
+├── Documentation
+│   ├── README_EN.md (English)
+│   ├── QUICKSTART.md
+│   ├── ARCHITECTURE.md
+│   ├── API.md
+│   ├── BUILD.md
+│   └── RUS/ (Russian)
+│
+└── Configuration
+    ├── build.ps1
+    ├── CMakeLists.txt
+    └── offsets_example.cfg
+```
 
 ---
 
 ## ⚠️ Requirements
 
 - **OS**: Windows 10/11 x64
-- **Rights**: Administrator (for some processes)
-- **Compiler**: MSVC, MinGW, Clang (with C++11 support)
-- **Dependencies**: WinAPI + standard library
-
----
-
-## 📂 Project Structure
-
-```
-Process-Module-Dumper/
-├── Source Files
-│   ├── main.cpp
-│   ├── ProcessManager.h/.cpp
-│   ├── ModuleRegistry.h/.cpp
-│   ├── AddressResolver.h/.cpp
-│   ├── OffsetStorage.h/.cpp
-│   └── ConsoleUI.h/.cpp
-│
-├── Documentation
-│   ├── README_EN.md (this file)
-│   ├── QUICKSTART.md
-│   ├── ARCHITECTURE.md
-│   ├── EXAMPLES.md
-│   ├── API.md
-│   ├── BUILD.md
-│   ├── SUMMARY.md
-│   ├── VISUAL_STRUCTURE.md
-│   ├── CHANGELOG.md
-│   ├── INDEX.md
-│   └── RUS/ (Russian versions)
-│
-├── Configuration
-│   ├── CMakeLists.txt
-│   ├── build.ps1
-│   ├── .gitignore
-│   └── offsets_example.cfg
-│
-└── Legacy
-    ├── base_address.cpp
-    └── eng_base_address.cpp
-```
-
----
-
-## 🎓 Output Examples
-
-### Module List:
-```
-====================================================
-Module Name                         | Base Address     | Size
----------------------------------------------------------------------------
-example.exe                         | 0x7FF7A1D00000   | 0x37E000
-client.dll                          | 0x7FF6A2000000   | 0x1A3C000
-engine.dll                          | 0x7FF6A5000000   | 0xB3D000
-```
-
-### Offsets Table:
-```
-====================================================
-Module               | Offset       | Resolved Addr    | Description
--------------------------------------------------------------------------------------
-client.dll           | 0xDEA964     | 0x7FF6A2DEA964   | LocalPlayer
-engine.dll           | 0x58EFC4     | 0x7FF6A558EFC4   | ViewAngles
-```
+- **Compiler**: MSVC (Visual Studio 2019+)
+- **Rights**: Administrator for some processes
 
 ---
 
 ## 📚 Documentation
 
-| File | Description |
-|------|-------------|
-| [QUICKSTART.md](QUICKSTART.md) | Quick start for 60 seconds |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Detailed architecture |
-| [EXAMPLES.md](EXAMPLES.md) | Usage examples + FAQ |
+| Document | Description |
+|----------|-------------|
+| [QUICKSTART.md](QUICKSTART.md) | Get started in 60 seconds |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture |
 | [API.md](API.md) | API reference |
 | [BUILD.md](BUILD.md) | Build instructions |
-| [SUMMARY.md](SUMMARY.md) | Project summary |
-| [VISUAL_STRUCTURE.md](VISUAL_STRUCTURE.md) | Visual diagrams |
-| [CHANGELOG.md](CHANGELOG.md) | Version history |
-| [INDEX.md](INDEX.md) | Documentation index |
 
-**Russian versions**: [RUS/](RUS/)
+**Russian**: [RUS/README.md](RUS/README.md)
 
 ---
 
 ## 📜 License
 
-Created for educational purposes in reverse engineering.  
-Use responsibly and in accordance with the law.
+Educational and research tool for reverse engineering purposes.
 
 ---
 
-## 👤 Author
-
-Developed as a tool for analyzing and debugging application processes.
-
----
-
-**Process Module & Offset Management Tool v1.0.0**
+**Process Module & Offset Management Tool v2.0**
 
 🔍 **Happy Reversing!** 🚀

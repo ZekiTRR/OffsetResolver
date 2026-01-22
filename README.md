@@ -83,9 +83,9 @@ Console application for Windows x64 that helps manage memory offsets safely acro
 ```ini
 # Format: ModuleName+0xHexOffset=Description
 
-client.dll+0xDEA964=Pointer1
-client.dll+0x4DCC098=Pointer2
-engine.dll+0x58EFC4=Pointer3
+app.dll+0xDEA964=Pointer1
+app.dll+0x4DCC098=Pointer2
+module2.dll+0x58EFC4=Pointer3
 ```
 
 

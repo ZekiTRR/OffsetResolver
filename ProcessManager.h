@@ -4,8 +4,8 @@
 #include <string>
 
 // ============================================================================
-// ProcessManager: Управление процессами
-// Назначение: поиск процесса по имени, получение PID, открытие дескриптора
+// ProcessManager: Process management
+// Purpose: Find process by name, get PID, open handle
 // ============================================================================
 
 class ProcessManager
@@ -20,25 +20,25 @@ public:
     ProcessManager();
     ~ProcessManager();
 
-    // Поиск процесса по имени
+    // Find process by name
     bool AttachToProcess(const std::wstring &processName);
 
-    // Отключение от процесса
+    // Detach from process
     void Detach();
 
-    // Проверка, открыт ли процесс
+    // Check if attached to process
     bool IsAttached() const { return m_isAttached; }
 
-    // Получение PID
+    // Get PID
     DWORD GetPID() const { return m_pid; }
 
-    // Получение дескриптора
+    // Get handle
     HANDLE GetHandle() const { return m_hProcess; }
 
-    // Получение имени процесса
+    // Get process name
     std::wstring GetProcessName() const { return m_processName; }
 
 private:
-    // Поиск PID по имени процесса
+    // Find PID by process name
     DWORD FindProcessID(const std::wstring &processName);
 };

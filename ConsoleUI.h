@@ -3,12 +3,15 @@
 #include "ModuleRegistry.h"
 #include "AddressResolver.h"
 #include "OffsetStorage.h"
+#include "MemoryReader.h"
+#include "PointerChainResolver.h"
+#include "PointerChainStorage.h"
 #include <string>
 
 // ============================================================================
-// ConsoleUI: Пользовательский интерфейс
-// Назначение: взаимодействие с пользователем через консоль
-// Меню, ввод данных, вывод результатов
+// ConsoleUI: User interface
+// Purpose: Console-based user interaction
+// Menus, data input, result output
 // ============================================================================
 
 class ConsoleUI
@@ -18,21 +21,26 @@ private:
     ModuleRegistry &m_moduleRegistry;
     AddressResolver &m_addressResolver;
     OffsetStorage &m_offsetStorage;
+    MemoryReader &m_memoryReader;
+    PointerChainResolver &m_pointerChainResolver;
+    PointerChainStorage &m_pointerChainStorage;
 
     std::wstring m_currentConfigFile;
 
 public:
-    ConsoleUI(ProcessManager &pm, ModuleRegistry &mr, AddressResolver &ar, OffsetStorage &os);
+    ConsoleUI(ProcessManager &pm, ModuleRegistry &mr, AddressResolver &ar, OffsetStorage &os,
+              MemoryReader &mr2, PointerChainResolver &pcr, PointerChainStorage &pcs);
 
-    // Главное меню
+    // Main menu
     void ShowMainMenu();
 
-    // === Меню режимов работы ===
-    void ShowOffsetManagerMenu(); // Управление оффсетами
-    void ShowModuleDumperMenu();  // Дамп модулей (из base_address.cpp)
+    // === Mode menus ===
+    void ShowOffsetManagerMenu();       // Offset management
+    void ShowPointerChainManagerMenu(); // Pointer chain management
+    void ShowModuleDumperMenu();        // Module dumper
 
 private:
-    // === Offset Manager Функции ===
+    // === Offset Manager Functions ===
     void AttachToProcessFlow();
     void LoadOffsetsFlow();
     void AddOffsetFlow();
@@ -40,10 +48,18 @@ private:
     void ViewOffsetsFlow();
     void SaveOffsetsFlow();
 
-    // === Module Dumper Функции (из оригинального base_address.cpp) ===
+    // === Pointer Chain Manager Functions ===
+    void AddPointerChainFlow();
+    void ResolveAllChainsFlow();
+    void ViewChainValuesFlow();
+    void LoadChainsFromFileFlow();
+    void SaveChainsToFileFlow();
+    void PrintChainList();
+
+    // === Module Dumper Functions ===
     void DumpModulesToFile();
 
-    // === Утилиты ===
+    // === Utilities ===
     void ClearScreen();
     void Pause();
     std::wstring GetInput(const std::wstring &prompt);

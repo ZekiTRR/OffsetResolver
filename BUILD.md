@@ -1,25 +1,40 @@
-# Инструкции по сборке
+# Build Instructions
 
-## Метод 1: Visual Studio (рекомендуется)
+**[English](BUILD.md) | [Русский](RUS/BUILD.md)**
 
-### Через командную строку разработчика:
+## Method 1: PowerShell Script (Recommended)
 
-```cmd
-cl /EHsc /std:c++17 /DUNICODE /D_UNICODE main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp /Fe:ProcessModuleManager.exe
+```powershell
+.\build.ps1
 ```
 
-### Через Visual Studio IDE:
-
-1. Создайте новый проект "Console Application"
-2. Добавьте все `.cpp` и `.h` файлы в проект
-3. В настройках проекта установите:
-   - Character Set: Unicode
-   - C++ Language Standard: C++17 или выше
-4. Соберите проект (F7)
+The script automatically:
+- Finds Visual Studio installation (including custom paths)
+- Compiles all source files
+- Creates `ProcessModuleManager.exe`
 
 ---
 
-## Метод 2: CMake
+## Method 2: Visual Studio Command Line
+
+### Developer Command Prompt:
+
+```cmd
+cl /EHsc /std:c++17 /O2 /DUNICODE /D_UNICODE main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp PointerChainStorage.cpp PointerChainResolver.cpp MemoryReader.cpp DebugLog.cpp /Fe:ProcessModuleManager.exe
+```
+
+### Visual Studio IDE:
+
+1. Create new "Console Application" project
+2. Add all `.cpp` and `.h` files to project
+3. In project settings:
+   - Character Set: Unicode
+   - C++ Language Standard: C++17 or higher
+4. Build project (F7)
+
+---
+
+## Method 3: CMake
 
 ```bash
 mkdir build
@@ -28,120 +43,109 @@ cmake ..
 cmake --build . --config Release
 ```
 
-Исполняемый файл будет в `build/Release/ProcessModuleManager.exe`
+Executable will be in `build/Release/ProcessModuleManager.exe`
 
 ---
 
-## Метод 3: MinGW (Windows)
+## Method 4: MinGW (Windows)
 
 ```bash
-g++ -std=c++17 -DUNICODE -D_UNICODE -o ProcessModuleManager.exe main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp
+g++ -std=c++17 -O2 -DUNICODE -D_UNICODE -o ProcessModuleManager.exe main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp PointerChainStorage.cpp PointerChainResolver.cpp MemoryReader.cpp DebugLog.cpp
 ```
 
 ---
 
-## Метод 4: Clang (Windows)
+## Method 5: Clang (Windows)
 
 ```bash
-clang++ -std=c++17 -DUNICODE -D_UNICODE -o ProcessModuleManager.exe main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp
+clang++ -std=c++17 -O2 -DUNICODE -D_UNICODE -o ProcessModuleManager.exe main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp PointerChainStorage.cpp PointerChainResolver.cpp MemoryReader.cpp DebugLog.cpp
 ```
 
 ---
 
-## Быстрая сборка (PowerShell скрипт)
+## Source Files
 
-Создайте файл `build.ps1`:
-
-```powershell
-# build.ps1
-Write-Host "Building Process Module Manager..." -ForegroundColor Green
-
-$sources = @(
-    "main.cpp",
-    "ProcessManager.cpp",
-    "ModuleRegistry.cpp",
-    "AddressResolver.cpp",
-    "OffsetStorage.cpp",
-    "ConsoleUI.cpp"
-)
-
-$output = "ProcessModuleManager.exe"
-
-# Поиск компилятора Visual Studio
-$vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-
-if (Test-Path $vsWhere) {
-    $vsPath = & $vsWhere -latest -property installationPath
-    $vcvars = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
-    
-    if (Test-Path $vcvars) {
-        Write-Host "Found Visual Studio at: $vsPath" -ForegroundColor Cyan
-        
-        # Компиляция
-        cmd /c "`"$vcvars`" && cl /EHsc /std:c++17 /DUNICODE /D_UNICODE $($sources -join ' ') /Fe:$output"
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "`nBuild successful! Output: $output" -ForegroundColor Green
-        } else {
-            Write-Host "`nBuild failed!" -ForegroundColor Red
-        }
-    }
-} else {
-    Write-Host "Visual Studio not found. Please install Visual Studio with C++ tools." -ForegroundColor Red
-}
-```
-
-Запуск:
-```powershell
-.\build.ps1
-```
+| File | Description |
+|------|-------------|
+| main.cpp | Entry point |
+| ProcessManager.cpp | Process attachment |
+| ModuleRegistry.cpp | Module enumeration |
+| AddressResolver.cpp | Address resolution |
+| OffsetStorage.cpp | Offset file storage |
+| ConsoleUI.cpp | User interface |
+| PointerChainStorage.cpp | Pointer chain storage |
+| PointerChainResolver.cpp | Multi-level pointer resolution |
+| MemoryReader.cpp | Safe memory reading |
+| DebugLog.cpp | Debug logging system |
 
 ---
 
-## Требования
+## Requirements
 
-- **Windows SDK**: Для доступа к WinAPI (tlhelp32.h, windows.h)
-- **Компилятор**: MSVC 2017+, MinGW-w64, Clang 10+
-- **C++ Standard**: C++17 или выше
+- **Windows SDK**: For WinAPI access (tlhelp32.h, windows.h)
+- **Compiler**: MSVC 2017+, MinGW-w64, Clang 10+
+- **C++ Standard**: C++17 or higher
+- **Platform**: Windows x64
 
 ---
 
-## Проверка сборки
+## Verify Build
 
-После успешной сборки запустите:
+After successful build:
 
 ```cmd
 ProcessModuleManager.exe
 ```
 
-Вы должны увидеть главное меню приложения.
+You should see the main application menu.
 
 ---
 
-## Отладка
-
-Для сборки с отладочной информацией:
+## Debug Build
 
 ### MSVC:
 ```cmd
-cl /EHsc /std:c++17 /Zi /DUNICODE /D_UNICODE main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp /Fe:ProcessModuleManager.exe
+cl /EHsc /std:c++17 /Zi /DUNICODE /D_UNICODE main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp PointerChainStorage.cpp PointerChainResolver.cpp MemoryReader.cpp DebugLog.cpp /Fe:ProcessModuleManager.exe
 ```
 
 ### GCC/Clang:
 ```bash
-g++ -std=c++17 -g -DUNICODE -D_UNICODE -o ProcessModuleManager.exe main.cpp ProcessManager.cpp ModuleRegistry.cpp AddressResolver.cpp OffsetStorage.cpp ConsoleUI.cpp
+g++ -std=c++17 -g -DUNICODE -D_UNICODE -o ProcessModuleManager.exe *.cpp
 ```
 
 ---
 
-## Права администратора
+## Administrator Rights
 
-Если программа не может открыть некоторые процессы, запустите её от имени администратора:
+If the program cannot open some processes, run as administrator:
 
-1. Правый клик на `ProcessModuleManager.exe`
-2. "Запуск от имени администратора"
+1. Right-click on `ProcessModuleManager.exe`
+2. "Run as administrator"
 
-Или через командную строку с правами администратора:
+Or through elevated command prompt:
 ```cmd
 .\ProcessModuleManager.exe
 ```
+
+---
+
+## Troubleshooting
+
+### "Cannot find Visual Studio"
+
+Check custom paths in `build.ps1`:
+```powershell
+$customPaths = @(
+    "E:\Microsft Visual Studio\Product",
+    "D:\Visual Studio",
+    # Add your path here
+)
+```
+
+### "Undefined reference to..."
+
+Ensure all `.cpp` files are included in compilation.
+
+### "Module not found" at runtime
+
+Run as administrator for protected processes.

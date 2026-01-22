@@ -40,9 +40,13 @@ offsets.cfg
 *_modules_dump.txt
 
 # Project documentation
+Develop/
 PROJECT_COMPLETE.md
 SUMMARY.md
 CHANGELOG.md
+POINTER_CHAINS_IMPLEMENTATION.md
+POINTER_CHAINS_QUICKSTART.md
+buildlog.txt
 
 # Backup files
 *.bak
@@ -53,6 +57,7 @@ backups/
 .vscode/
 .idea/
 *.code-workspace
+
 
 # OS specific
 Thumbs.db

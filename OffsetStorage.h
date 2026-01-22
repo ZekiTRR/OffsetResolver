@@ -4,21 +4,21 @@
 #include <map>
 
 // ============================================================================
-// OffsetStorage: Хранилище оффсетов
-// Назначение: загрузка и сохранение оффсетов в формате "module + offset"
-// Формат файла: простой текстовый (INI-like)
-// Абсолютные адреса НЕ сохраняются, только module + offset
+// OffsetStorage: Offset storage system
+// Purpose: Load and save offsets in "module + offset" format
+// File format: Simple text-based (INI-like)
+// Absolute addresses are NOT saved, only module + offset
 // ============================================================================
 
 struct OffsetEntry
 {
-    std::wstring moduleName;  // Имя модуля (например, "client.dll")
-    uintptr_t offset;         // Оффсет относительно модуля
-    std::wstring description; // Описание (например, "LocalPlayer")
+    std::wstring moduleName;  // Module name (e.g., "app.dll")
+    uintptr_t offset;         // Offset relative to module base
+    std::wstring description; // Description (e.g., "Pointer1")
 
-    // Runtime данные (не сохраняются в файл)
-    uintptr_t resolvedAddress; // Абсолютный адрес (moduleBase + offset)
-    bool isResolved;           // Флаг, пересчитан ли адрес
+    // Runtime data (not saved to file)
+    uintptr_t resolvedAddress; // Absolute address (moduleBase + offset)
+    bool isResolved;           // Flag indicating if address was resolved
 
     OffsetEntry()
         : offset(0), resolvedAddress(0), isResolved(false)
@@ -36,36 +36,36 @@ private:
 public:
     OffsetStorage();
 
-    // Загрузка оффсетов из файла
+    // Load offsets from file
     bool LoadFromFile(const std::wstring &filename);
 
-    // Сохранение оффсетов в файл
+    // Save offsets to file
     bool SaveToFile(const std::wstring &filename);
 
-    // Сохранение с использованием текущего имени файла
+    // Save using current filename
     bool Save();
 
-    // Добавление нового оффсета
+    // Add new offset
     void AddOffset(const OffsetEntry &entry);
 
-    // Получение списка оффсетов
+    // Get offset list
     const std::vector<OffsetEntry> &GetOffsets() const { return m_offsets; }
     std::vector<OffsetEntry> &GetOffsets() { return m_offsets; }
 
-    // Очистка списка
+    // Clear offset list
     void Clear();
 
-    // Проверка, были ли изменения
+    // Check if modified
     bool IsModified() const { return m_isModified; }
 
-    // Количество оффсетов
+    // Get offset count
     size_t Count() const { return m_offsets.size(); }
 
-    // Вывод всех оффсетов в консоль
+    // Print all offsets to console
     void PrintOffsets() const;
 
 private:
-    // Парсинг строки с hex значением
+    // Parse hex value string
     bool ParseHexValue(const std::wstring &str, uintptr_t &outValue);
 
     // Trim whitespace

@@ -3,9 +3,9 @@
 #include "OffsetStorage.h"
 
 // ============================================================================
-// AddressResolver: Разрешение адресов
-// Назначение: пересчёт абсолютных адресов из пар "module + offset"
-// Автоматически учитывает ASLR при каждом запуске процесса
+// AddressResolver: Address resolution
+// Purpose: Recalculate absolute addresses from "module + offset" pairs
+// Automatically handles ASLR on each process launch
 // ============================================================================
 
 class AddressResolver
@@ -16,15 +16,15 @@ private:
 public:
     AddressResolver();
 
-    // Установка реестра модулей для разрешения адресов
+    // Set module registry for address resolution
     void SetModuleRegistry(const ModuleRegistry *registry);
 
-    // Разрешение одного оффсета
+    // Resolve single offset
     bool ResolveOffset(OffsetEntry &entry);
 
-    // Разрешение всех оффсетов в хранилище
+    // Resolve all offsets in storage
     int ResolveAll(OffsetStorage &storage);
 
-    // Вычисление абсолютного адреса вручную
+    // Calculate absolute address manually
     uintptr_t CalculateAddress(const std::wstring &moduleName, uintptr_t offset);
 };

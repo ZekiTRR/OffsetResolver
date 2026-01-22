@@ -35,7 +35,7 @@ bool OffsetStorage::LoadFromFile(const std::wstring &filename)
             continue;
 
         // Format: ModuleName+0xOffset=Description
-        // Example: client.dll+0xDEA964=LocalPlayer
+        // Example: app.dll+0xDEA964=DataPointer
 
         size_t plusPos = line.find(L'+');
         size_t equalPos = line.find(L'=');
@@ -90,7 +90,7 @@ bool OffsetStorage::SaveToFile(const std::wstring &filename)
     // File header
     file << L"# Offset Configuration File\n";
     file << L"# Format: ModuleName+0xOffset=Description\n";
-    file << L"# Example: client.dll+0xDEA964=LocalPlayer\n";
+    file << L"# Example: app.dll+0xDEA964=DataPointer\n";
     file << L"#\n";
     file << L"# Note: Absolute addresses are NOT saved, only module+offset pairs\n\n";
 
