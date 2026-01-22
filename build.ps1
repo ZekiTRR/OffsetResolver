@@ -17,7 +17,8 @@ $sources = @(
     "MemoryReader.cpp",
     "PointerChainResolver.cpp",
     "PointerChainStorage.cpp",
-    "ConsoleUI.cpp"
+    "ConsoleUI.cpp",
+    "DebugLog.cpp"
 )
 
 $output = "ProcessModuleManager.exe"
@@ -42,16 +43,36 @@ Write-Host "[+] All source files found" -ForegroundColor Green
 
 # Find Visual Studio
 $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$vsPath = $null
 
-if (-not (Test-Path $vsWhere)) {
-    Write-Host "[-] Visual Studio not found!" -ForegroundColor Red
-    Write-Host "    Please install Visual Studio with C++ Desktop Development workload" -ForegroundColor Yellow
-    exit 1
+if (Test-Path $vsWhere) {
+    $vsPath = & $vsWhere -latest -property installationPath
 }
 
-$vsPath = & $vsWhere -latest -property installationPath
+# If vswhere didn't find VS, check common custom locations
 if ([string]::IsNullOrEmpty($vsPath)) {
-    Write-Host "[-] Could not locate Visual Studio installation" -ForegroundColor Red
+    $customPaths = @(
+        "E:\Microsft Visual Studio\Product",
+        "E:\Microsoft Visual Studio\Product",
+        "D:\Microsoft Visual Studio\2022\Community",
+        "D:\Microsoft Visual Studio\2022\Professional",
+        "C:\Program Files\Microsoft Visual Studio\2022\Community",
+        "C:\Program Files\Microsoft Visual Studio\2022\Professional"
+    )
+    
+    foreach ($path in $customPaths) {
+        $testVcvars = "$path\VC\Auxiliary\Build\vcvars64.bat"
+        if (Test-Path $testVcvars) {
+            $vsPath = $path
+            break
+        }
+    }
+}
+
+if ([string]::IsNullOrEmpty($vsPath)) {
+    Write-Host "[-] Visual Studio not found!" -ForegroundColor Red
+    Write-Host "    Please install Visual Studio with C++ Desktop Development workload" -ForegroundColor Yellow
+    Write-Host "    Or add your VS path to the customPaths array in build.ps1" -ForegroundColor Yellow
     exit 1
 }
 
@@ -59,7 +80,7 @@ Write-Host "[+] Found Visual Studio at: $vsPath" -ForegroundColor Green
 
 $vcvars = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
 if (-not (Test-Path $vcvars)) {
-    Write-Host "[-] vcvars64.bat not found!" -ForegroundColor Red
+    Write-Host "[-] vcvars64.bat not found at: $vcvars" -ForegroundColor Red
     exit 1
 }
 

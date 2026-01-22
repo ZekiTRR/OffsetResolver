@@ -1,4 +1,5 @@
 #include "PointerChainResolver.h"
+#include "DebugLog.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -12,48 +13,111 @@ PointerChainResolver::PointerChainResolver(
 
 bool PointerChainResolver::ResolveChain(PointerChain &chain)
 {
+    DBG_STEP(L"=== Resolving chain: " + chain.description + L" ===");
+
     // Step 1: Get module base address
     ModuleInfo moduleInfo;
     if (!m_moduleRegistry->FindModule(chain.moduleName, moduleInfo))
     {
         chain.lastError = L"Module not found: " + chain.moduleName;
         chain.isResolved = false;
+        DBG_ERR(L"Module not found: " + chain.moduleName);
         return false;
     }
 
-    // Step 2: Calculate base pointer = moduleBase + baseOffset
-    uintptr_t currentPtr = moduleInfo.baseAddress + chain.baseOffset;
+    DBG_MODULE(moduleInfo.name, moduleInfo.baseAddress, moduleInfo.size);
 
-    // Validate initial pointer
-    if (!m_memoryReader->IsValidAddress(currentPtr))
+    // Step 2: Calculate base pointer address = moduleBase + baseOffset
+    uintptr_t baseAddress = moduleInfo.baseAddress + chain.baseOffset;
+    DBG_ADDR(L"Base address (module + offset)", baseAddress);
+
+    // Validate base address
+    if (!m_memoryReader->IsValidAddress(baseAddress))
     {
         chain.lastError = L"Invalid base address after module offset";
         chain.isResolved = false;
+        DBG_ERR(L"Invalid base address: 0x" + FormatHex(baseAddress).substr(2));
         return false;
     }
 
-    // Step 3: Walk the pointer chain
+    // Step 3: Read first pointer from base address
+    bool success = false;
+    uintptr_t currentPtr = m_memoryReader->ReadPointer(baseAddress, success);
+    DBG_MEM(baseAddress, sizeof(uintptr_t), success);
+
+    if (!success)
+    {
+        chain.lastError = L"Failed to read pointer at base address";
+        chain.isResolved = false;
+        DBG_ERR(L"Failed to read pointer at base address");
+        return false;
+    }
+
+    DBG_PTR(baseAddress, currentPtr);
+
+    // Step 4: Walk the pointer chain (apply offsets and read pointers)
+    // For chains with offsets: read pointer, add offset, repeat
+    // Last offset leads to final value address
     for (size_t i = 0; i < chain.offsets.size(); ++i)
     {
-        if (!ResolveStep(currentPtr, chain.offsets[i]))
+        // Add offset to current pointer
+        uintptr_t nextAddress = currentPtr + chain.offsets[i];
+        DBG_CHAIN(i + 1, chain.offsets.size(), currentPtr, chain.offsets[i], nextAddress);
+
+        if (!m_memoryReader->IsValidAddress(nextAddress))
         {
-            chain.lastError = L"Failed at chain step " + std::to_wstring(i + 1) + L"/" + std::to_wstring(chain.offsets.size());
+            chain.lastError = L"Invalid address at chain step " + std::to_wstring(i + 1) + L"/" + std::to_wstring(chain.offsets.size());
             chain.isResolved = false;
+            DBG_ERR(L"Invalid address at step " + std::to_wstring(i + 1) + L": 0x" + FormatHex(nextAddress).substr(2));
+            return false;
+        }
+
+        // If this is the last offset, don't dereference - this is the final address
+        if (i == chain.offsets.size() - 1)
+        {
+            currentPtr = nextAddress;
+            DBG_OK(L"Final address reached: 0x" + FormatHex(currentPtr).substr(2));
+            break;
+        }
+
+        // Read next pointer in the chain
+        currentPtr = m_memoryReader->ReadPointer(nextAddress, success);
+        DBG_MEM(nextAddress, sizeof(uintptr_t), success);
+
+        if (!success)
+        {
+            chain.lastError = L"Failed to read pointer at chain step " + std::to_wstring(i + 1) + L"/" + std::to_wstring(chain.offsets.size());
+            chain.isResolved = false;
+            DBG_ERR(L"Failed to read pointer at step " + std::to_wstring(i + 1));
+            return false;
+        }
+
+        DBG_PTR(nextAddress, currentPtr);
+
+        if (!m_memoryReader->IsValidAddress(currentPtr))
+        {
+            chain.lastError = L"Invalid pointer value at chain step " + std::to_wstring(i + 1) + L"/" + std::to_wstring(chain.offsets.size());
+            chain.isResolved = false;
+            DBG_ERR(L"Invalid pointer value at step " + std::to_wstring(i + 1) + L": 0x" + FormatHex(currentPtr).substr(2));
             return false;
         }
     }
 
-    // Step 4: Read final value from resolved address
+    // Step 5: Read final value from resolved address
     chain.resolvedAddress = currentPtr;
+    DBG_ADDR(L"Final resolved address", currentPtr);
+
     if (!ReadFinalValue(currentPtr, chain))
     {
         chain.lastError = L"Failed to read value at final address";
         chain.isResolved = false;
+        DBG_ERR(L"Failed to read final value");
         return false;
     }
 
     chain.isResolved = true;
     chain.lastError = L"";
+    DBG_OK(L"Chain resolved successfully: " + chain.currentValue.ToString());
     return true;
 }
 
@@ -65,6 +129,8 @@ bool PointerChainResolver::ResolveStep(uintptr_t &currentPtr, uintptr_t offset)
     // Validate address before reading
     if (!m_memoryReader->IsValidAddress(address))
     {
+        std::wcerr << L"[PointerChainResolver] Invalid address: 0x" << std::hex << address
+                   << L" (ptr=0x" << currentPtr << L" + offset=0x" << offset << L")" << std::dec << std::endl;
         return false;
     }
 
@@ -74,12 +140,15 @@ bool PointerChainResolver::ResolveStep(uintptr_t &currentPtr, uintptr_t offset)
 
     if (!success)
     {
+        std::wcerr << L"[PointerChainResolver] Failed to read pointer at 0x" << std::hex << address << std::dec << std::endl;
         return false;
     }
 
     // Validate next pointer
     if (!m_memoryReader->IsValidAddress(nextPtr))
     {
+        std::wcerr << L"[PointerChainResolver] Read invalid pointer value: 0x" << std::hex << nextPtr
+                   << L" from address 0x" << address << std::dec << std::endl;
         return false;
     }
 

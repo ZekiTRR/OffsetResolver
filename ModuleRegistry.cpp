@@ -1,4 +1,5 @@
 #include "ModuleRegistry.h"
+#include "DebugLog.h"
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
@@ -10,6 +11,7 @@ ModuleRegistry::ModuleRegistry()
 
 bool ModuleRegistry::LoadModules(DWORD pid)
 {
+    DBG_STEP(L"Loading modules for PID: " + std::to_wstring(pid));
     Clear();
     m_pid = pid;
 
@@ -17,7 +19,9 @@ bool ModuleRegistry::LoadModules(DWORD pid)
 
     if (hSnapshot == INVALID_HANDLE_VALUE)
     {
-        std::wcerr << L"[-] Failed to create module snapshot. Error code: " << GetLastError() << std::endl;
+        DWORD error = GetLastError();
+        DBG_ERR(L"CreateToolhelp32Snapshot failed with error: " + std::to_wstring(error));
+        std::wcerr << L"[-] Failed to create module snapshot. Error code: " << error << std::endl;
         std::wcerr << L"[-] Try running as administrator." << std::endl;
         return false;
     }
@@ -35,6 +39,7 @@ bool ModuleRegistry::LoadModules(DWORD pid)
             info.size = me32.modBaseSize;
 
             m_modules.push_back(info);
+            DBG_MODULE(info.name, info.baseAddress, info.size);
 
             // Add to map for fast lookup (convert name to lowercase)
             std::wstring lowerName = info.name;
@@ -49,10 +54,12 @@ bool ModuleRegistry::LoadModules(DWORD pid)
 
     if (m_isLoaded)
     {
+        DBG_OK(L"Loaded " + std::to_wstring(m_modules.size()) + L" modules");
         std::wcout << L"[+] Loaded " << m_modules.size() << L" modules." << std::endl;
     }
     else
     {
+        DBG_WARN(L"No modules found");
         std::wcerr << L"[-] No modules found." << std::endl;
     }
 
@@ -62,7 +69,10 @@ bool ModuleRegistry::LoadModules(DWORD pid)
 bool ModuleRegistry::FindModule(const std::wstring &moduleName, ModuleInfo &outInfo) const
 {
     if (!m_isLoaded)
+    {
+        DBG_WARN(L"Module registry not loaded");
         return false;
+    }
 
     // Case-insensitive search
     std::wstring lowerName = moduleName;
@@ -72,9 +82,11 @@ bool ModuleRegistry::FindModule(const std::wstring &moduleName, ModuleInfo &outI
     if (it != m_moduleMap.end())
     {
         outInfo = it->second;
+        DBG_OK(L"Found module: " + moduleName);
         return true;
     }
 
+    DBG_WARN(L"Module not found: " + moduleName);
     return false;
 }
 
@@ -83,6 +95,7 @@ uintptr_t ModuleRegistry::GetModuleBase(const std::wstring &moduleName) const
     ModuleInfo info;
     if (FindModule(moduleName, info))
     {
+        DBG_ADDR(L"Module base for " + moduleName, info.baseAddress);
         return info.baseAddress;
     }
     return 0;

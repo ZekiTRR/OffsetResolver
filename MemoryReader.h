@@ -33,6 +33,10 @@ class MemoryReader
 public:
     explicit MemoryReader(HANDLE processHandle);
 
+    // Update process handle (call after attaching to new process)
+    void SetProcessHandle(HANDLE processHandle) { m_processHandle = processHandle; }
+    HANDLE GetProcessHandle() const { return m_processHandle; }
+
     // Type-safe read operations with validation
     int32_t ReadInt(uintptr_t address, bool &success);
     float ReadFloat(uintptr_t address, bool &success);

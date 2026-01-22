@@ -1,14 +1,18 @@
-# Архитектура приложения
+# Application Architecture
 
-## 📐 Общая схема
+**[English](ARCHITECTURE.md) | [Русский](RUS/ARCHITECTURE.md)**
+
+## 📐 Overview Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        ConsoleUI                            │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  Главное меню:                                       │   │
+│  │  Main Menu:                                          │   │
 │  │  1. Offset Manager                                   │   │
-│  │  2. Module Dumper                                    │   │
+│  │  2. Pointer Chain Manager                            │   │
+│  │  3. Module Dumper                                    │   │
+│  │  Commands: debug | debugfile                         │   │
 │  └──────────────────────────────────────────────────────┘   │
 └──────────────┬──────────────────────┬────────────────────────┘
                │                      │
@@ -36,38 +40,69 @@
    │  - Save to file       │                │  - Calculate address │
    │  - Store module+offset│                │  - Handle errors     │
    └───────────────────────┘                └──────────────────────┘
+               │
+               │
+               ▼
+   ┌───────────────────────────────────────────────────────────────┐
+   │                    Pointer Chain System                       │
+   │  ┌─────────────────────┐  ┌─────────────────────────────────┐ │
+   │  │PointerChainStorage  │  │   PointerChainResolver          │ │
+   │  │- Store chains       │  │   - Multi-level pointer reading │ │
+   │  │- Load/Save          │  │   - Step-by-step resolution     │ │
+   │  └─────────────────────┘  └─────────────────────────────────┘ │
+   │                                    │                          │
+   │                                    ▼                          │
+   │                         ┌───────────────────┐                 │
+   │                         │   MemoryReader    │                 │
+   │                         │- Safe memory read │                 │
+   │                         │- Type conversion  │                 │
+   │                         └───────────────────┘                 │
+   └───────────────────────────────────────────────────────────────┘
+               │
+               ▼
+   ┌───────────────────────┐
+   │      DebugLog         │
+   │  - Colored output     │
+   │  - File logging       │
+   │  - Step tracking      │
+   └───────────────────────┘
 ```
 
 ---
 
-## 🔧 Модули и их обязанности
+## 🔧 Modules and Responsibilities
 
-### 1. ConsoleUI (Пользовательский интерфейс)
+### 1. ConsoleUI (User Interface)
 
-**Ответственность**:
-- Отображение меню
-- Обработка ввода пользователя
-- Оркестрация работы других модулей
-- Форматированный вывод данных
+**Responsibility**:
+- Display menus
+- Handle user input
+- Orchestrate other modules
+- Formatted output
 
-**Ключевые методы**:
-- `ShowMainMenu()` — главное меню выбора режима
-- `ShowOffsetManagerMenu()` — меню управления оффсетами
-- `ShowModuleDumperMenu()` — меню экспорта модулей
+**Key Methods**:
+- `ShowMainMenu()` — main mode selection menu
+- `ShowOffsetManagerMenu()` — offset management menu
+- `ShowPointerChainMenu()` — pointer chain management
+- `ShowModuleDumperMenu()` — module export menu
 
-**Зависимости**: Все модули (ProcessManager, ModuleRegistry, AddressResolver, OffsetStorage)
+**Debug Commands**:
+- `debug` — enable debug mode with colored output
+- `debugfile` — enable file logging to debug_log.txt
+
+**Dependencies**: All modules
 
 ---
 
-### 2. ProcessManager (Управление процессами)
+### 2. ProcessManager (Process Management)
 
-**Ответственность**:
-- Поиск процесса по имени
-- Получение PID
-- Открытие дескриптора с необходимыми правами
-- Проверка состояния подключения
+**Responsibility**:
+- Find process by name
+- Get PID
+- Open handle with necessary permissions
+- Check attachment status
 
-**Ключевые методы**:
+**Key Methods**:
 ```cpp
 bool AttachToProcess(const std::wstring& processName);
 void Detach();
@@ -76,34 +111,34 @@ DWORD GetPID() const;
 HANDLE GetHandle() const;
 ```
 
-**WinAPI функции**:
-- `CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)` — снимок процессов
-- `Process32FirstW()` / `Process32NextW()` — перечисление процессов
-- `OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, ...)` — открытие
+**WinAPI Functions**:
+- `CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)` — process snapshot
+- `Process32FirstW()` / `Process32NextW()` — enumerate processes
+- `OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, ...)` — open handle
 
-**Обработка ошибок**:
-- Процесс не найден → возврат `false`, сообщение пользователю
-- Нет прав доступа → предложение запустить от администратора
+**Error Handling**:
+- Process not found → return `false`, user message
+- Access denied → suggest running as administrator
 
 ---
 
-### 3. ModuleRegistry (Реестр модулей)
+### 3. ModuleRegistry (Module Registry)
 
-**Ответственность**:
-- Получение списка всех модулей процесса
-- Хранение информации: имя, ImageBase, SizeOfImage
-- Быстрый поиск модуля по имени (регистронезависимый)
+**Responsibility**:
+- Get list of all process modules
+- Store information: name, ImageBase, SizeOfImage
+- Fast module lookup by name (case-insensitive)
 
-**Структуры данных**:
+**Data Structures**:
 ```cpp
 struct ModuleInfo {
-    std::wstring name;          // "client.dll"
+    std::wstring name;          // "app.dll"
     uintptr_t baseAddress;      // 0x7FF6A2000000
     uintptr_t size;             // 0x1A3C000
 };
 ```
 
-**Ключевые методы**:
+**Key Methods**:
 ```cpp
 bool LoadModules(DWORD pid);
 bool FindModule(const std::wstring& moduleName, ModuleInfo& outInfo);
@@ -111,44 +146,44 @@ uintptr_t GetModuleBase(const std::wstring& moduleName);
 void PrintModules() const;
 ```
 
-**WinAPI функции**:
+**WinAPI Functions**:
 - `CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid)`
-- `Module32FirstW()` / `Module32NextW()` — перечисление модулей
+- `Module32FirstW()` / `Module32NextW()` — enumerate modules
 
-**Оптимизация**:
-- `std::map<std::wstring, ModuleInfo>` — для быстрого поиска O(log n)
-- Имена модулей приводятся к нижнему регистру для регистронезависимого поиска
+**Optimization**:
+- `std::map<std::wstring, ModuleInfo>` — for fast O(log n) lookup
+- Module names converted to lowercase for case-insensitive search
 
 ---
 
-### 4. OffsetStorage (Хранилище оффсетов)
+### 4. OffsetStorage (Offset Storage)
 
-**Ответственность**:
-- Загрузка оффсетов из текстового файла
-- Сохранение оффсетов (только module+offset, БЕЗ абсолютных адресов)
-- Хранение runtime данных (resolved addresses)
+**Responsibility**:
+- Load offsets from text file
+- Save offsets (only module+offset, WITHOUT absolute addresses)
+- Store runtime data (resolved addresses)
 
-**Структуры данных**:
+**Data Structures**:
 ```cpp
 struct OffsetEntry {
-    std::wstring moduleName;     // "client.dll"
+    std::wstring moduleName;     // "app.dll"
     uintptr_t offset;            // 0xDEA964
-    std::wstring description;    // "LocalPlayer"
+    std::wstring description;    // "PlayerBase"
     
-    // Runtime (не сохраняются в файл):
+    // Runtime (not saved to file):
     uintptr_t resolvedAddress;   // 0x7FF6A2DEA964
     bool isResolved;             // true
 };
 ```
 
-**Формат файла**:
+**File Format**:
 ```ini
-# Комментарий
-client.dll+0xDEA964=LocalPlayer
-engine.dll+0x58EFC4=ViewAngles
+# Comment
+app.dll+0xDEA964=PlayerBase
+module2.dll+0x58EFC4=ViewAngles
 ```
 
-**Ключевые методы**:
+**Key Methods**:
 ```cpp
 bool LoadFromFile(const std::wstring& filename);
 bool SaveToFile(const std::wstring& filename);
@@ -156,22 +191,22 @@ void AddOffset(const OffsetEntry& entry);
 void PrintOffsets() const;
 ```
 
-**Парсинг**:
-- Игнорирование комментариев (`#` и `;`)
-- Разбор формата: `ModuleName+0xOffset=Description`
-- Trim пробелов
-- Поддержка hex значений с/без префикса `0x`
+**Parsing**:
+- Ignore comments (`#` and `;`)
+- Parse format: `ModuleName+0xOffset=Description`
+- Trim whitespace
+- Support hex values with/without `0x` prefix
 
 ---
 
-### 5. AddressResolver (Разрешение адресов)
+### 5. AddressResolver (Address Resolution)
 
-**Ответственность**:
-- Пересчёт абсолютных адресов из пар "module + offset"
-- Формула: `resolved_address = module_base + offset`
-- Обработка случаев, когда модуль не найден
+**Responsibility**:
+- Recalculate absolute addresses from "module + offset" pairs
+- Formula: `resolved_address = module_base + offset`
+- Handle cases when module not found
 
-**Ключевые методы**:
+**Key Methods**:
 ```cpp
 void SetModuleRegistry(const ModuleRegistry* registry);
 bool ResolveOffset(OffsetEntry& entry);
@@ -179,24 +214,109 @@ int ResolveAll(OffsetStorage& storage);
 uintptr_t CalculateAddress(const std::wstring& moduleName, uintptr_t offset);
 ```
 
-**Алгоритм разрешения**:
+**Resolution Algorithm**:
 ```cpp
-1. Получить baseAddress модуля из ModuleRegistry
-2. Если модуль не найден → isResolved = false, return false
+1. Get module baseAddress from ModuleRegistry
+2. If module not found → isResolved = false, return false
 3. resolved_address = baseAddress + offset
 4. isResolved = true
 5. return true
 ```
 
-**Обработка ошибок**:
-- Модуль не найден → помечаем оффсет как неразрешённый, выводим предупреждение
-- ModuleRegistry не загружен → возврат ошибки
+---
+
+### 6. PointerChainResolver (Multi-Level Pointer Resolution)
+
+**Responsibility**:
+- Read multi-level pointer chains
+- Step-by-step validation
+- Final value reading with type support
+
+**Key Methods**:
+```cpp
+bool ResolveChain(const PointerChainEntry& chain, 
+                  uintptr_t& finalAddress, 
+                  std::string& valueStr);
+```
+
+**Resolution Algorithm**:
+```cpp
+1. Get module base address
+2. Calculate base: moduleBase + baseOffset
+3. Read first pointer from base address
+4. For each offset in chain:
+   - Add offset to current address
+   - Read pointer at that address
+5. Read final value based on type (int, float, double, etc.)
+```
+
+**Debug Output** (when debug mode enabled):
+```
+[CHAIN] Resolving 'Health': app.dll+0x17E0A8 -> [0xEC]
+[PTR]   Module base: 0x7FF6A2000000
+[PTR]   Base address: 0x7FF6A217E0A8
+[STEP]  Read pointer at 0x7FF6A217E0A8 = 0x22A14567890
+[STEP]  After offset 0xEC: 0x22A1456797C
+[MEM]   Final value (int): 100
+```
 
 ---
 
-## 🔄 Типичные сценарии использования
+### 7. MemoryReader (Safe Memory Reading)
 
-### Сценарий 1: Первый запуск (создание конфигурации)
+**Responsibility**:
+- Safe memory reading with validation
+- Type-safe templates
+- Handle validation
+
+**Key Methods**:
+```cpp
+void SetProcessHandle(HANDLE processHandle);
+bool ReadMemory(uintptr_t address, void* buffer, size_t size);
+
+template<typename T>
+bool Read(uintptr_t address, T& value);
+```
+
+**Safety Features**:
+- NULL/INVALID_HANDLE validation
+- ReadProcessMemory error checking
+- Partial read detection
+
+---
+
+### 8. DebugLog (Debug System)
+
+**Responsibility**:
+- Global debug state management
+- Colored console output
+- File logging
+
+**Key Methods**:
+```cpp
+static void Enable();
+static void Disable();
+static void Toggle();
+static bool IsEnabled();
+static void EnableFileLogging(const std::string& filename);
+static void DisableFileLogging();
+```
+
+**Log Types**:
+- `Info()` — general information (cyan)
+- `Success()` — success messages (green)
+- `Warning()` — warnings (yellow)
+- `Error()` — errors (red)
+- `Step()` — step indicators (magenta)
+- `Address()` — address output (cyan)
+- `PointerRead()` — pointer read results (yellow)
+- `ChainStep()` — chain resolution steps (white)
+
+---
+
+## 🔄 Typical Usage Scenarios
+
+### Scenario 1: First Run (Create Configuration)
 
 ```
 User Action                      System Response
@@ -204,105 +324,109 @@ User Action                      System Response
 1. Start application             → ConsoleUI: ShowMainMenu()
 2. Select "Offset Manager"       → ConsoleUI: ShowOffsetManagerMenu()
 3. Select "Attach to process"    → ConsoleUI: AttachToProcessFlow()
-4. Enter "example.exe"              → ProcessManager: AttachToProcess("example.exe")
+4. Enter "example.exe"           → ProcessManager: AttachToProcess()
                                  → Find PID via CreateToolhelp32Snapshot
                                  → OpenProcess(PROCESS_VM_READ, pid)
-                                 → Success: "Attached to example.exe (PID: 12345)"
+                                 → Success: "Attached to example.exe"
                                  
-5. Auto-load modules             → ModuleRegistry: LoadModules(12345)
+5. Auto-load modules             → ModuleRegistry: LoadModules()
                                  → CreateToolhelp32Snapshot(TH32CS_SNAPMODULE)
-                                 → Module32FirstW/NextW loop
                                  → Store all modules with base addresses
-                                 → "Loaded 156 modules"
                                  
 6. Select "Add new offset"       → ConsoleUI: AddOffsetFlow()
-7. Enter "client.dll"            → Validate module exists in registry
+7. Enter "app.dll"               → Validate module exists in registry
 8. Enter "0xDEA964"              → Parse hex value
 9. Enter "Pointer1"              → Set description
                                  → OffsetStorage: AddOffset(entry)
-                                 → "Offset added successfully"
                                  
-10. Repeat steps 6-9 for more offsets
-
-11. Select "Save offsets"        → ConsoleUI: SaveOffsetsFlow()
-12. Enter "offsets.cfg"          → OffsetStorage: SaveToFile("offsets.cfg")
-                                 → Write format: module+offset=description
-                                 → "Saved 5 offsets to offsets.cfg"
+10. Select "Save offsets"        → OffsetStorage: SaveToFile()
 ```
 
 ---
 
-### Сценарий 2: Повторный запуск (загрузка конфигурации)
+### Scenario 2: Pointer Chain Resolution
 
 ```
 User Action                      System Response
 ───────────────────────────────  ─────────────────────────────────────
-1. Start application             → ConsoleUI: ShowMainMenu()
-2. Select "Offset Manager"       → ConsoleUI: ShowOffsetManagerMenu()
-3. Select "Attach to process"    → ProcessManager: AttachToProcess("example.exe")
-                                 → NEW PID: 23456 (process restarted)
-                                 → ModuleRegistry: LoadModules(23456)
-                                 → NEW module bases due to ASLR!
+1. Start with 'debug' command    → DebugLog::Enable()
+2. Select "Pointer Chain Manager"→ ConsoleUI: ShowPointerChainMenu()
+3. Attach to process             → ProcessManager + ModuleRegistry
+4. Add chain:                    
+   - Module: app.dll
+   - Base offset: 0x17E0A8
+   - Offsets: 0x18,0x70,0x2D0
+   - Type: float
+   - Name: Position
+   
+5. Resolve chains                → PointerChainResolver::ResolveChain()
                                  
-4. Select "Load offsets"         → ConsoleUI: LoadOffsetsFlow()
-5. Enter "offsets.cfg"           → OffsetStorage: LoadFromFile("offsets.cfg")
-                                 → Parse file, load module+offset pairs
-                                 → "Loaded 5 offsets from offsets.cfg"
-                                 → Note: resolved addresses NOT loaded
-                                 
-6. Select "Resolve all offsets"  → ConsoleUI: ResolveOffsetsFlow()
-                                 → AddressResolver: SetModuleRegistry(&registry)
-                                 → AddressResolver: ResolveAll(storage)
-                                 
-                                 For each offset:
-                                 - Get module base from ModuleRegistry
-                                 - Calculate: resolved = base + offset
-                                 - Mark as resolved
-                                 
-                                 → "Successfully resolved 5/5 offsets"
-                                 
-7. Select "View offsets"         → OffsetStorage: PrintOffsets()
-                                 → Display table with NEW addresses:
-                                 
-                                   client.dll | 0xDEA964 | 0x7FF7A3DEA964 | Pointer1
-                                   (previous: 0x7FF6A2DEA964 - ASLR changed!)
+   Debug output:
+   [CHAIN] Resolving 'Position': app.dll+0x17E0A8 -> [0x18,0x70,0x2D0]
+   [PTR]   Module base: 0x7FF6A2000000
+   [PTR]   Base address: 0x7FF6A217E0A8
+   [STEP]  Step 1/3: Read at 0x7FF6A217E0A8 = 0x22A14567890
+   [STEP]  Step 2/3: 0x22A14567890 + 0x70 = 0x22A14567900
+   [STEP]  Step 3/3: Read at 0x22A14567900 = 0x22A14568000
+   [MEM]   Final address: 0x22A145682D0
+   [MEM]   Value (float): 123.456
 ```
 
 ---
 
-### Сценарий 3: Экспорт модулей
+## 🔐 ASLR Protection Mechanism
+
+### Problem:
+In Windows, every time a process starts, modules load at random addresses (ASLR).
+
+**Example**:
+```
+Run 1: app.dll base = 0x7FF6A2000000
+Run 2: app.dll base = 0x7FF7A3000000  ← CHANGED!
+```
+
+If you save absolute address `0x7FF6A2DEA964`, it becomes invalid on next run.
+
+### Solution:
+
+Store **relative offset** from module base:
 
 ```
-User Action                      System Response
-───────────────────────────────  ─────────────────────────────────────
-1. Start application             → ConsoleUI: ShowMainMenu()
-2. Select "Module Dumper"        → ConsoleUI: ShowModuleDumperMenu()
-3. Enter "notepad.exe"           → ProcessManager: AttachToProcess("notepad.exe")
-                                 → ModuleRegistry: LoadModules(PID)
-                                 → ModuleRegistry: PrintModules()
-                                 → Display all modules with addresses
-                                 
-4. Choose to save                → ConsoleUI: DumpModulesToFile()
-                                 → Create "notepad.exe_modules_dump.txt"
-                                 → Write module list with bases
-                                 → "Module list saved to notepad.exe_modules_dump.txt"
+PlayerBase = app.dll + 0xDEA964
 ```
+
+On each run:
+```cpp
+uintptr_t newBase = GetModuleBase("app.dll");  // New base due to ASLR
+uintptr_t actualAddress = newBase + 0xDEA964;  // Recalculate
+```
+
+**Result**:
+```
+Run 1: 0x7FF6A2000000 + 0xDEA964 = 0x7FF6A2DEA964 ✓
+Run 2: 0x7FF7A3000000 + 0xDEA964 = 0x7FF7A3DEA964 ✓
+```
+
+Offset `0xDEA964` stays constant, only base changes!
 
 ---
 
-## 🧩 Взаимодействие модулей
+## 🧩 Module Interactions
 
-### Зависимости:
+### Dependencies:
 
 ```
 ConsoleUI
   ├─► ProcessManager
   ├─► ModuleRegistry ─────► ProcessManager (needs PID)
   ├─► AddressResolver ────► ModuleRegistry (needs module bases)
-  └─► OffsetStorage ──────► AddressResolver (for resolving)
+  ├─► OffsetStorage ──────► AddressResolver (for resolving)
+  ├─► PointerChainStorage
+  ├─► PointerChainResolver ► MemoryReader (for reading memory)
+  └─► DebugLog (global, static)
 ```
 
-### Потоки данных:
+### Data Flows:
 
 ```
 1. Process Name (User Input)
@@ -313,154 +437,64 @@ ConsoleUI
                    └─► AddressResolver: Resolve offsets
                        └─► Resolved Addresses
 
-2. Offset File (offsets.cfg)
-   └─► OffsetStorage: Load module+offset pairs
-       └─► AddressResolver: Calculate addresses
-           └─► Resolved Offsets
-               └─► ConsoleUI: Display
+2. Pointer Chain
+   └─► PointerChainResolver: Step-by-step resolution
+       └─► MemoryReader: Read at each level
+           └─► Final Value
 ```
 
 ---
 
-## 🔐 ASLR Protection Mechanism
-
-### Проблема:
-В Windows каждый раз при запуске процесса модули загружаются по случайным адресам (ASLR).
-
-**Пример**:
-```
-Запуск 1: client.dll base = 0x7FF6A2000000
-Запуск 2: client.dll base = 0x7FF7A3000000  ← ИЗМЕНИЛСЯ!
-```
-
-Если сохранить абсолютный адрес `0x7FF6A2DEA964`, он станет недействительным при следующем запуске.
-
-### Решение:
-
-Хранить **относительный оффсет** от базы модуля:
+## 📊 Sequence Diagram (Full Cycle)
 
 ```
-LocalPlayer = client.dll + 0xDEA964
-```
-
-При каждом запуске:
-```cpp
-uintptr_t newBase = GetModuleBase("client.dll");  // Новый base из-за ASLR
-uintptr_t actualAddress = newBase + 0xDEA964;     // Пересчитываем
-```
-
-**Результат**:
-```
-Запуск 1: 0x7FF6A2000000 + 0xDEA964 = 0x7FF6A2DEA964 ✓
-Запуск 2: 0x7FF7A3000000 + 0xDEA964 = 0x7FF7A3DEA964 ✓
-```
-
-Оффсет `0xDEA964` остаётся постоянным, меняется только base!
-
----
-
-## 🚀 Точки расширения
-
-### 1. Pattern Scanner
-
-Добавить в `ModuleRegistry`:
-
-```cpp
-bool ModuleRegistry::FindPattern(
-    const std::wstring& moduleName,
-    const std::vector<byte>& pattern,
-    const std::string& mask,
-    uintptr_t& outAddress
-);
-```
-
-Использование:
-```cpp
-// Поиск сигнатуры "55 8B EC ? ? ? E8"
-std::vector<byte> pattern = {0x55, 0x8B, 0xEC, 0x00, 0x00, 0x00, 0xE8};
-std::string mask = "xxx????x";
-uintptr_t address;
-if (registry.FindPattern(L"client.dll", pattern, mask, address)) {
-    std::wcout << L"Pattern found at: 0x" << std::hex << address << std::endl;
-}
-```
-
-### 2. Memory Reader
-
-Добавить в `ProcessManager`:
-
-```cpp
-template<typename T>
-bool ProcessManager::ReadMemory(uintptr_t address, T& outValue);
-
-bool ProcessManager::ReadMemoryRaw(
-    uintptr_t address,
-    void* buffer,
-    size_t size
-);
-```
-
-### 3. Signature-based Offset Updater
-
-Вместо хранения статических оффсетов, хранить сигнатуры:
-
-```ini
-# offsets_signatures.cfg
-[LocalPlayer]
-module=client.dll
-signature=55 8B EC ? ? ? E8 ? ? ? ? 8B 0D
-mask=xxx????x????xx
-offset_from_found=+13
+User       ConsoleUI    ProcessMgr   ModuleReg   ChainResolver  MemoryReader
+ │              │            │            │             │              │
+ ├─'debug'─────►│            │            │             │              │
+ │              ├─Enable─────►DebugLog    │             │              │
+ │              │            │            │             │              │
+ ├─Attach─────► ├────────────►Find PID    │             │              │
+ │              │            ├────────────►Load Modules │              │
+ │              │            │            │             │              │
+ ├─Add chain──► ├───────────────────────────────────────►Store chain   │
+ │              │            │            │             │              │
+ ├─Resolve────► ├───────────────────────────────────────►ResolveChain  │
+ │              │            │            ◄─────────────┤GetModuleBase │
+ │              │            │            │             ├──────────────►
+ │              │            │            │             │   ReadMemory │
+ │              │            │            │             ◄──────────────┤
+ │              │            │            │             │(repeat steps)│
+ │              │            │            │             ├──────────────►
+ │              │            │            │             │   ReadValue  │
+ │              │            │            │             ◄──────────────┤
+ │              ◄─────────────────────────────────────────Result       │
+ │              │            │            │             │              │
 ```
 
 ---
 
-## 📊 Диаграмма последовательности (полный цикл)
+## 📝 Design Notes
 
-```
-User       ConsoleUI    ProcessMgr   ModuleReg   OffsetStorage   AddressResolver
- │              │            │            │             │                │
- ├─Start────────►│            │            │             │                │
- │              ├─Menu───────►│            │             │                │
- │              │            │            │             │                │
- ├─Attach─────► ├────────────►Find PID    │             │                │
- │              │            ├────────────►Load Modules │                │
- │              │            │            │             │                │
- ├─Load cfg──► ├────────────────────────────────────────►Parse file     │
- │              │            │            │             │                │
- ├─Resolve────► ├────────────────────────────────────────────────────────►
- │              │            │            │             │    For each:   │
- │              │            │            ◄─────────────────GetModuleBase│
- │              │            │            │             ◄────Calculate───┤
- │              │            │            │             │                │
- ├─View──────► ├────────────────────────────────────────►PrintOffsets   │
- │              │            │            │             │                │
-```
+### ✅ Good Practices:
 
----
+1. **Separation of Concerns**: Each module has one clear responsibility
+2. **Minimal Dependencies**: Modules don't know each other directly
+3. **Error Handling**: Each operation is validated
+4. **Unicode Support**: Full Unicode support for process/module names
+5. **RAII**: Automatic handle cleanup in destructors
+6. **Debug System**: Built-in debug mode with colored output and file logging
 
-## 📝 Примечания по дизайну
+### ⚠️ Limitations:
 
-### ✅ Хорошие практики:
+1. Windows x64 only
+2. Administrator rights required for some processes
+3. Does not support protected/anti-cheat processes
+4. Simple storage format (INI), not JSON
 
-1. **Разделение ответственности**: Каждый модуль имеет одну чёткую задачу
-2. **Минимальные зависимости**: Модули не знают друг о друге напрямую
-3. **Обработка ошибок**: Каждая операция проверяется на успех
-4. **Unicode support**: Полная поддержка Unicode для имён процессов/модулей
-5. **RAII**: Автоматическое закрытие дескрипторов в деструкторах
+### 🔮 Future Improvements:
 
-### ⚠️ Ограничения:
-
-1. Только Windows x64
-2. Требуются права администратора для некоторых процессов
-3. Не поддерживает protected/anti-cheat процессы
-4. Простой формат хранения (INI), не JSON
-
-### 🔮 Будущие улучшения:
-
-1. JSON формат для конфигурации (с использованием nlohmann/json)
-2. Pattern scanning для автоматического обновления оффсетов
-3. Поддержка pointer chains (multi-level pointers)
-4. GUI версия (Qt или ImGui)
-5. Логирование в файл
-6. History/Undo для изменений
+1. JSON configuration format (using nlohmann/json)
+2. Pattern scanning for automatic offset updates
+3. GUI version (Qt or ImGui)
+4. Hot-reload configuration
+5. Network export/import of offsets

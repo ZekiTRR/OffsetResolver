@@ -1,36 +1,42 @@
-# Примеры использования
+# Usage Examples
 
-## 📋 Содержание
+**[English](EXAMPLES.md) | [Русский](RUS/EXAMPLES.md)**
 
-1. [Быстрый старт](#быстрый-старт)
-2. [Работа с оффсетами](#работа-с-оффсетами)
-3. [Экспорт модулей](#экспорт-модулей)
-4. [Реальные сценарии](#реальные-сценарии)
-5. [Советы и трюки](#советы-и-трюки)
+## 📋 Contents
+
+1. [Quick Start](#quick-start)
+2. [Working with Offsets](#working-with-offsets)
+3. [Pointer Chains](#pointer-chains)
+4. [Debug Mode](#debug-mode)
+5. [Module Export](#module-export)
+6. [Tips and Tricks](#tips-and-tricks)
 
 ---
 
-## Быстрый старт
+## Quick Start
 
-### Пример 1: Первый запуск
+### Example 1: First Run
 
 ```
 > ProcessModuleManager.exe
 
-╔═══════════════════════════════════════════════════╗
-║     Process Module & Offset Management Tool      ║
-╚═══════════════════════════════════════════════════╝
+====================================================
+    Process Module & Offset Management Tool        
+====================================================
 
 Choose mode:
   1. Offset Manager (ASLR-safe offset storage)
-  2. Module Dumper (Export module list to file)
+  2. Pointer Chain Manager (multi-level pointers)
+  3. Module Dumper (Export module list to file)
   0. Exit
 
-Select option [0-2]: 1
+  Commands: 'debug' - toggle debug | 'debugfile' - log to file
 
-╔═══════════════════════════════════════════════════╗
-║              Offset Manager Mode                  ║
-╚═══════════════════════════════════════════════════╝
+Select option [0-3]: 1
+
+====================================================
+              Offset Manager Mode                  
+====================================================
 
 [ ] Process: Not attached
 [ ] Modules: Not loaded
@@ -40,7 +46,7 @@ Options:
   1. Attach to process
   2. Load offsets from file
   3. Add new offset
-  4. Resolve all offsets (calculate addresses)
+  4. Resolve all offsets
   5. View offsets and resolved addresses
   6. Save offsets to file
   7. View module list
@@ -52,17 +58,15 @@ Enter process name (e.g., example.exe): notepad.exe
 
 [+] Successfully attached to process 'notepad.exe' (PID: 12345)
 [+] Loaded 24 modules.
-
-Press Enter to continue...
 ```
 
 ---
 
-## Работа с оффсетами
+## Working with Offsets
 
-### Пример 2: Создание конфигурации оффсетов
+### Example 2: Creating Offset Configuration
 
-**Шаг 1: Подключиться к процессу**
+**Step 1: Attach to process**
 ```
 Select option [0-7]: 1
 Enter process name: example.exe
@@ -70,7 +74,7 @@ Enter process name: example.exe
 [+] Loaded 156 modules.
 ```
 
-**Шаг 2: Просмотреть модули**
+**Step 2: View modules**
 ```
 Select option [0-7]: 7
 
@@ -78,72 +82,59 @@ Select option [0-7]: 7
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
 example.exe                         | 0x7FF7A1D00000   | 0x37E000
-client.dll                          | 0x7FF6A2000000   | 0x1A3C000
-engine.dll                          | 0x7FF6A5000000   | 0xB3D000
-server.dll                          | 0x7FF6A8000000   | 0x2F7000
+app.dll                             | 0x7FF6A2000000   | 0x1A3C000
+module2.dll                         | 0x7FF6A5000000   | 0xB3D000
+module3.dll                         | 0x7FF6A8000000   | 0x2F7000
 ...
 ```
 
-**Шаг 3: Добавить оффсеты**
+**Step 3: Add offsets**
 ```
 Select option [0-7]: 3
 
 === Add New Offset ===
 
-Module name (e.g., client.dll): client.dll
+Module name (e.g., app.dll): app.dll
 [+] Module found. Base: 0x7FF6A2000000
 Offset (hex, e.g., 0xDEA964): 0xDEA964
-Description (optional, e.g., LocalPlayer): LocalPlayer
+Description (optional): DataPointer
 
 [+] Offset added successfully!
 ```
 
-Повторяем для других оффсетов:
-```
-client.dll + 0x4DCC098 = EntityList
-engine.dll + 0x58EFC4 = ViewAngles
-engine.dll + 0x590DD0 = ClientState
-```
-
-**Шаг 4: Сохранить конфигурацию**
+**Step 4: Save configuration**
 ```
 Select option [0-7]: 6
-
-No offsets to save? No!
-[✓] Offsets: 4 in storage
-
-Enter filename to save (e.g., offsets.cfg): app_offsets.cfg
-[+] Saved 4 offsets to app_offsets.cfg
-
-Press Enter to continue...
+Enter filename to save (e.g., offsets.cfg): my_offsets.cfg
+[+] Saved 4 offsets to my_offsets.cfg
 ```
 
-**Результат (app_offsets.cfg)**:
+**Result (my_offsets.cfg)**:
 ```ini
 # Offset Configuration File
 # Format: ModuleName+0xOffset=Description
 
-client.dll+0xDEA964=LocalPlayer
-client.dll+0x4DCC098=EntityList
-engine.dll+0x58EFC4=ViewAngles
-engine.dll+0x590DD0=ClientState
+app.dll+0xDEA964=DataPointer
+app.dll+0x4DCC098=EntityList
+module2.dll+0x58EFC4=ViewAngles
+module3.dll+0x590DD0=ClientState
 ```
 
 ---
 
-### Пример 3: Загрузка и разрешение оффсетов
+### Example 3: Loading and Resolving Offsets
 
-**После перезапуска процесса (ASLR изменил адреса)**
+**After process restart (ASLR changed addresses)**
 
 ```
 Select option [0-7]: 1
 Enter process name: example.exe
-[+] Successfully attached to process 'example.exe' (PID: 34567)  ← Новый PID!
+[+] Successfully attached to process 'example.exe' (PID: 34567)  ← New PID!
 [+] Loaded 156 modules.
 
 Select option [0-7]: 2
-Enter config filename: app_offsets.cfg
-[+] Loaded 4 offsets from app_offsets.cfg
+Enter config filename: my_offsets.cfg
+[+] Loaded 4 offsets from my_offsets.cfg
 
 Select option [0-7]: 4
 
@@ -151,357 +142,287 @@ Select option [0-7]: 4
 
 [+] Successfully resolved 4/4 offsets.
 
-Show resolved addresses? (y/n): y
+Select option [0-7]: 5
 
 === Offset List ===
 Module               | Offset       | Resolved Addr    | Description
 -------------------------------------------------------------------------------------
-client.dll           | 0xDEA964     | 0x7FF7A3DEA964   | LocalPlayer
-client.dll           | 0x4DCC098    | 0x7FF7A7DCC098   | EntityList
-engine.dll           | 0x58EFC4     | 0x7FF7A858EFC4   | ViewAngles
-engine.dll           | 0x590DD0     | 0x7FF7A8590DD0   | ClientState
-
-Press Enter to continue...
+app.dll              | 0xDEA964     | 0x7FF7A3DEA964   | DataPointer
+app.dll              | 0x4DCC098    | 0x7FF7A7DCC098   | EntityList
+module2.dll          | 0x58EFC4     | 0x7FF7A858EFC4   | ViewAngles
+module3.dll          | 0x590DD0     | 0x7FF7A8590DD0   | ClientState
 ```
 
-**Обратите внимание**: 
-- Оффсеты (`0xDEA964` и т.д.) — не изменились
-- Resolved адреса — полностью новые (ASLR)
-- Всё работает автоматически!
+**Note**: 
+- Offsets (`0xDEA964` etc.) — unchanged
+- Resolved addresses — completely new (ASLR)
+- Everything works automatically!
 
 ---
 
-## Экспорт модулей
+## Pointer Chains
 
-### Пример 4: Дамп модулей процесса
+### Example 4: Multi-Level Pointer Resolution
+
+**Step 1: Enable debug mode**
+```
+Select option [0-3]: debug
+[+] Debug mode ENABLED
+```
+
+**Step 2: Select Pointer Chain Manager**
+```
+Select option [0-3]: 2
+
+====================================================
+           Pointer Chain Manager Mode              
+====================================================
+```
+
+**Step 3: Attach and add chain**
+```
+Module name: app.dll
+Base offset (hex): 0x17E0A8
+Offsets (comma-separated, e.g., 0x10,0x20,0x30): 0x18,0x70,0x2D0
+Value type (int/float/double/int64/pointer): float
+Description: PlayerPosition
+
+[+] Pointer chain added!
+```
+
+**Step 4: Resolve chains**
+```
+=== Resolving Pointer Chains ===
+
+[CHAIN] Resolving 'PlayerPosition': app.dll+0x17E0A8 -> [0x18,0x70,0x2D0]
+[PTR]   Module base: 0x7FF6A2000000
+[PTR]   Base address: 0x7FF6A217E0A8
+[STEP]  Step 1/3: Read at 0x7FF6A217E0A8 = 0x22A14567890
+[STEP]  Step 2/3: 0x22A14567890 + 0x70 = 0x22A14567900
+[STEP]  Step 3/3: Read at 0x22A14567900 = 0x22A14568000
+[MEM]   Final address: 0x22A145682D0
+[MEM]   Value (float): 123.456
+
+[+] Chain resolved successfully!
+```
+
+**Step 5: Save chains**
+```
+Enter filename: my_chains.txt
+[+] Saved 1 chains to my_chains.txt
+```
+
+**Result (my_chains.txt)**:
+```
+# Pointer Chain Configuration
+# Format: moduleName|baseOffset|offsets|valueType|description
+
+app.dll|0x17E0A8|0x18,0x70,0x2D0|float|PlayerPosition
+```
+
+---
+
+## Debug Mode
+
+### Example 5: Debugging Pointer Chain Issues
+
+**Enable debug mode from main menu:**
+```
+Select option [0-3]: debug
+[+] Debug mode ENABLED
+
+Select option [0-3]: debugfile
+[+] File logging ENABLED (debug_log.txt)
+```
+
+**Debug output shows:**
+- Module base addresses
+- Each step of pointer resolution
+- Memory values at each level
+- Errors with detailed context
+
+**Sample debug output:**
+```
+[INFO]  Starting chain resolution for 'Health'
+[PTR]   Module 'app.dll' base: 0x7FF6A2000000
+[ADDR]  Base address: 0x7FF6A217E0A8
+[STEP]  Reading first pointer at base address
+[PTR]   Read: 0x7FF6A217E0A8 -> 0x22A14567890
+[STEP]  Step 1/2: Adding offset 0x18
+[ADDR]  Current: 0x22A145678A8
+[PTR]   Read: 0x22A145678A8 -> 0x22A14568000
+[STEP]  Step 2/2: Adding offset 0xEC
+[ADDR]  Final address: 0x22A145680EC
+[MEM]   Reading final value as 'int'
+[SUCCESS] Value: 100
+```
+
+**File log (debug_log.txt):**
+```
+[2024-01-15 14:30:45] [INFO] Starting chain resolution for 'Health'
+[2024-01-15 14:30:45] [PTR] Module 'app.dll' base: 0x7FF6A2000000
+...
+```
+
+---
+
+## Module Export
+
+### Example 6: Dump Process Modules
 
 ```
-Choose mode:
-  1. Offset Manager
-  2. Module Dumper
-  0. Exit
+Select option [0-3]: 3
 
-Select option [0-2]: 2
+====================================================
+              Module Dumper Mode                   
+====================================================
 
-╔═══════════════════════════════════════════════════╗
-║              Module Dumper Mode                   ║
-╚═══════════════════════════════════════════════════╝
-
-Enter process name (e.g., app.exe): app.exe
-[+] Successfully attached to process 'app.exe' (PID: 45678)
+Enter process name (e.g., example.exe): example.exe
+[+] Successfully attached to process 'example.exe' (PID: 45678)
 [+] Loaded 89 modules.
 
 === Module List ===
 Module Name                         | Base Address     | Size
 ---------------------------------------------------------------------------
-app.exe                             | 0x7FF6A1000000   | 0x2A4000
-client.dll                          | 0x7FF6A3000000   | 0x1B5C000
-engine.dll                          | 0x7FF6A5000000   | 0xC4D000
+example.exe                         | 0x7FF6A1000000   | 0x2A4000
+app.dll                             | 0x7FF6A3000000   | 0x1B5C000
+module2.dll                         | 0x7FF6A5000000   | 0xC4D000
 ...
 
 Save to file? (y/n): y
-[+] Module list saved to app_modules_dump.txt
-
-Press Enter to continue...
-```
-
-**Результат (app_modules_dump.txt)**:
-```
-Process: app.exe (PID: 45678)
-
-Module Name                         | Base Address     | Size
----------------------------------------------------------------------------
-app.exe                             | 0x7FF6A1000000   | 0x2A4000
-client.dll                          | 0x7FF6A3000000   | 0x1B5C000
-engine.dll                          | 0x7FF6A5000000   | 0xC4D000
-...
+[+] Module list saved to example_modules_dump.txt
 ```
 
 ---
 
-## Реальные сценарии
+## Tips and Tricks
 
-### Сценарий 1: Анализ и исследование процесса
+### Tip 1: Working with Multiple Processes
 
-**Цель**: Поиск адресов данных для мониторинга.
-
-**Действия**:
-
-1. **Найти адрес**:
-   - Найдите адрес данных: `0x7FF6A2DEA964`
-   - База client.dll: `0x7FF6A2000000`
-   - Оффсет: `0xDEA964 - 0x000000 = 0xDEA964`
-
-2. **Сохранить в приложение**:
-   ```
-   Offset Manager → Attach to example.exe → Add offset:
-   Module: client.dll
-   Offset: 0xDEA964
-   Description: DataPointer
-   ```
-
-3. **Сохранить конфигурацию**: `Save → app_offsets.cfg`
-
-4. **При каждом запуске приложения**:
-   ```cpp
-   // Загружаем оффсеты
-   offsetStorage.LoadFromFile(L"app_offsets.cfg");
-   
-   // Разрешаем адреса
-   addressResolver.ResolveAll(offsetStorage);
-   
-   // Отслеживаем данные
-   uintptr_t dataAddr = offsets[0].resolvedAddress;
-   // Отслеживаем исследиваемые данные
-   ```
-
----
-
-### Сценарий 2: Debugging/Reverse Engineering
-
-**Цель**: Исследовать внутреннюю структуру приложения.
-
-**Workflow**:
-
-1. **Экспорт всех модулей**:
-   ```
-   Module Dumper → app.exe → Save to file
-   ```
-
-2. **Анализ в IDA Pro/Ghidra**:
-   - Загружаем модуль в дизассемблер
-   - Используем базовые адреса из дампа для правильного mapping
-
-3. **Документирование находок**:
-   ```
-   Offset Manager → Add offset:
-   module.dll+0x123456 = ImportantFunction
-   module.dll+0x789ABC = GlobalConfig
-   ```
-
-4. **Версионирование**:
-   - Сохраняем разные конфигурации для разных версий приложения
-   - `app_v1.0_offsets.cfg`
-   - `app_v1.1_offsets.cfg`
-
----
-
-## Советы и трюки
-
-### Совет 1: Работа с несколькими процессами
-
-Создавайте отдельные конфигурации:
+Create separate configurations:
 ```
 app1_offsets.cfg
-app2_offsets.cfg
-app3_offsets.cfg
-```
+app1_chains.txt
 
-При загрузке просто выбираете нужный файл.
+app2_offsets.cfg
+app2_chains.txt
+```
 
 ---
 
-### Совет 2: Комментарии в конфигурации
+### Tip 2: Comments in Configuration
 
 ```ini
 # ========== Player Related ==========
-client.dll+0xDEA964=LocalPlayer
-client.dll+0x4DCC098=EntityList
+app.dll+0xDEA964=DataPointer
+app.dll+0x4DCC098=EntityList
 
 # ========== View/Camera ==========
-engine.dll+0x58EFC4=ViewAngles
-engine.dll+0x590DD0=ClientState
-
-# ========== Rendering ==========
-client.dll+0x52BBFE0=GlowManager
+module2.dll+0x58EFC4=ViewAngles
+module2.dll+0x590DD0=ClientState
 ```
 
 ---
 
-### Совет 3: Проверка актуальности оффсетов
+### Tip 3: Checking Offset Validity
 
-После обновления игры:
+After application update:
 ```
 1. Attach to process
 2. Load old offsets
 3. Resolve all
 4. View offsets
 
-Если все разрешены успешно — оффсеты всё ещё актуальны!
-Если некоторые не разрешились — модуль не найден, проверьте имя
+If all resolved successfully — offsets are still valid!
+If some failed — module not found, check name
 ```
 
 ---
 
-### Совет 4: Backup конфигураций
+### Tip 4: Configuration Backup
 
 ```powershell
-# PowerShell скрипт для backup
+# PowerShell backup script
 $date = Get-Date -Format "yyyy-MM-dd"
 Copy-Item "offsets.cfg" "backups/offsets_$date.cfg"
+Copy-Item "chains.txt" "backups/chains_$date.txt"
 ```
 
 ---
 
-### Совет 5: Автоматический запуск
+### Tip 5: Using Debug for Troubleshooting
 
-Создайте `.bat` файл:
-```batch
-@echo off
-echo Starting Offset Manager for CS:GO
-ProcessModuleManager.exe
-```
+When pointer chain fails:
+1. Enable `debug` mode
+2. Enable `debugfile` for persistent log
+3. Try resolving chain
+4. Check `debug_log.txt` for exact failure point
 
-Или PowerShell:
-```powershell
-# auto_resolve_csgo.ps1
-Start-Process "ProcessModuleManager.exe"
-# TODO: автоматизировать ввод команд
-```
+Common issues:
+- Invalid base address → wrong module name
+- Step N fails → pointer at previous level is invalid
+- Final read fails → incorrect value type
 
 ---
 
-### Совет 6: Работа с закрытыми процессами
+## FAQ
 
-Если процесс защищён (anti-cheat):
+### Q: Why can't the app find the process?
 
-1. **Запуск от администратора** — обязательно
-2. **Отключение anti-cheat** — для тестирования
-3. **Использование kernel driver** — для продвинутых пользователей
-
-**Текущее приложение работает только с user-mode доступом!**
-
----
-
-## Часто задаваемые вопросы (FAQ)
-
-### Q: Почему приложение не может найти процесс?
-
-**A**: Проверьте:
-1. Правильность имени процесса (с расширением `.exe`)
-2. Процесс действительно запущен (Task Manager)
-3. Регистр не важен: `CSGO.exe` = `csgo.exe`
+**A**: Check:
+1. Process name is correct (with `.exe` extension)
+2. Process is actually running (Task Manager)
+3. Case doesn't matter: `EXAMPLE.exe` = `example.exe`
 
 ---
 
 ### Q: "Failed to get module list. Try running as administrator"
 
-**A**: Некоторые процессы требуют прав администратора.
+**A**: Some processes require administrator rights.
 
-**Решение**:
-1. Правый клик на `ProcessModuleManager.exe`
-2. "Запуск от имени администратора"
-
----
-
-### Q: Модуль найден, но оффсет не разрешается
-
-**A**: Проверьте:
-1. Имя модуля точно такое же, как в списке модулей
-2. Оффсет в hex формате: `0xDEA964` или `DEA964`
-3. Модуль загружен в процесс (View module list)
+**Solution**:
+1. Right-click on `ProcessModuleManager.exe`
+2. "Run as administrator"
 
 ---
 
-### Q: Можно ли использовать для 32-битных процессов?
+### Q: Pointer chain fails at step 1
 
-**A**: Теоретически да, но приложение скомпилировано как x64.
+**A**: Common causes:
+1. Base offset is wrong
+2. Module base changed (try re-attaching)
+3. Pointer is NULL at that address
 
-**Решение**: Пересоберите как x86 приложение.
+Use debug mode to see exact values.
 
 ---
 
-### Q: Где хранятся конфигурации?
+### Q: Can I use for 32-bit processes?
 
-**A**: В той же папке, где запущен `ProcessModuleManager.exe`
+**A**: Theoretically yes, but app is compiled as x64.
 
-Можно указать абсолютный путь:
+**Solution**: Rebuild as x86 application.
+
+---
+
+### Q: Where are configurations stored?
+
+**A**: In the same folder as `ProcessModuleManager.exe`
+
+You can specify absolute path:
 ```
 Enter filename: C:\MyConfigs\offsets.cfg
 ```
 
 ---
 
-### Q: Можно ли экспортировать в JSON?
+## Conclusion
 
-**A**: В текущей версии — нет, только INI-like формат.
+This application is a foundation for reverse engineering tools.
 
-**Будущее**: Планируется поддержка JSON.
-
----
-
-### Q: Как автоматизировать процесс?
-
-**A**: Приложение интерактивное, но можно:
-1. Использовать scripting (AutoHotkey, AutoIt)
-2. Расширить код для command-line интерфейса
-3. Создать wrapper на Python с использованием `subprocess`
-
-Пример:
-```python
-import subprocess
-proc = subprocess.Popen(['ProcessModuleManager.exe'], 
-                        stdin=subprocess.PIPE, 
-                        stdout=subprocess.PIPE)
-proc.communicate(b"1\n1\ncsgo.exe\n2\noffsets.cfg\n4\n5\n0\n0\n")
-```
-
----
-
-### Q: Работает ли с приложениями с защитою?
-
-**A**: **НЕТ!**
-
-Приложение использует стандартные WinAPI функции, которые блокируются защитными системами приложений.
-
-**Для research/testing используюте тестовые версии или offline режим.**
-
----
-
-## Примеры готовых конфигураций
-
-### Counter-Strike: Source
-```ini
-# app_offsets.cfg
-client.dll+0x4A2D24=Pointer1
-client.dll+0x489E84=Pointer2
-engine.dll+0x4D3F0C=Pointer3
-```
-
-### Half-Life 2
-```ini
-# app_offsets.cfg
-client.dll+0x5B7A94=Pointer1
-engine.dll+0x4A54DC=Pointer2
-```
-
-### Generic Configuration
-```ini
-# app_generic.cfg
-# These offsets may work across multiple versions
-
-client.dll+0x?????=Pointer1     # Find with CE
-engine.dll+0x?????=Pointer2     # Pattern scanning
-```
-
----
-
-## Дополнительные ресурсы
-
-- **Cheat Engine**: Для поиска начальных оффсетов
-- **x64dbg**: Для динамического анализа
-- **IDA Pro / Ghidra**: Для статического анализа
-- **ReClass.NET**: Для реконструкции структур данных
-
----
-
-## Заключение
-
-Это приложение — фундамент для разработки инструментов реверс-инжиниринга.
-
-**Следующие шаги**:
-1. Изучите код в `ARCHITECTURE.md`
-2. Расширьте функционал (pattern scanner, memory reader)
-3. Интегрируйте в свои проекты
+**Next steps**:
+1. Study code in `ARCHITECTURE.md`
+2. Extend functionality (pattern scanner, memory writer)
+3. Integrate into your projects
 
 **Happy Reversing! 🔍**

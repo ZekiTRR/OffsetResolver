@@ -1,30 +1,32 @@
 # API Reference
 
-Документация для расширения функционала приложения.
+**[English](API.md) | [Русский](RUS/API.md)**
+
+Documentation for extending application functionality.
 
 ---
 
 ## ProcessManager
 
-### Конструктор
+### Constructor
 ```cpp
 ProcessManager();
 ```
 
-### Методы
+### Methods
 
 #### AttachToProcess
 ```cpp
 bool AttachToProcess(const std::wstring& processName);
 ```
-Подключается к процессу по имени.
+Attaches to a process by name.
 
-**Параметры**:
-- `processName` — имя процесса (например, `L"example.exe"`)
+**Parameters**:
+- `processName` — process name (e.g., `L"example.exe"`)
 
-**Возвращает**: `true` если успешно, `false` если процесс не найден или нет доступа
+**Returns**: `true` if successful, `false` if process not found or access denied
 
-**Пример**:
+**Example**:
 ```cpp
 ProcessManager pm;
 if (pm.AttachToProcess(L"notepad.exe")) {
@@ -38,7 +40,7 @@ if (pm.AttachToProcess(L"notepad.exe")) {
 ```cpp
 void Detach();
 ```
-Отключается от процесса, закрывает дескриптор.
+Disconnects from process, closes handle.
 
 ---
 
@@ -46,7 +48,7 @@ void Detach();
 ```cpp
 bool IsAttached() const;
 ```
-Проверяет, подключён ли ProcessManager к процессу.
+Checks if ProcessManager is attached to a process.
 
 ---
 
@@ -54,7 +56,7 @@ bool IsAttached() const;
 ```cpp
 DWORD GetPID() const;
 ```
-Возвращает PID процесса.
+Returns process PID.
 
 ---
 
@@ -62,33 +64,33 @@ DWORD GetPID() const;
 ```cpp
 HANDLE GetHandle() const;
 ```
-Возвращает дескриптор процесса.
+Returns process handle.
 
-**Внимание**: Не закрывайте дескриптор вручную!
+**Warning**: Do not close the handle manually!
 
 ---
 
 ## ModuleRegistry
 
-### Конструктор
+### Constructor
 ```cpp
 ModuleRegistry();
 ```
 
-### Методы
+### Methods
 
 #### LoadModules
 ```cpp
 bool LoadModules(DWORD pid);
 ```
-Загружает список модулей для указанного процесса.
+Loads module list for specified process.
 
-**Параметры**:
-- `pid` — ID процесса
+**Parameters**:
+- `pid` — process ID
 
-**Возвращает**: `true` если модули загружены
+**Returns**: `true` if modules loaded
 
-**Пример**:
+**Example**:
 ```cpp
 ModuleRegistry registry;
 if (registry.LoadModules(processManager.GetPID())) {
@@ -102,18 +104,18 @@ if (registry.LoadModules(processManager.GetPID())) {
 ```cpp
 bool FindModule(const std::wstring& moduleName, ModuleInfo& outInfo) const;
 ```
-Ищет модуль по имени (регистронезависимо).
+Finds module by name (case-insensitive).
 
-**Параметры**:
-- `moduleName` — имя модуля (например, `L"client.dll"`)
-- `outInfo` — выходная структура с информацией о модуле
+**Parameters**:
+- `moduleName` — module name (e.g., `L"app.dll"`)
+- `outInfo` — output structure with module information
 
-**Возвращает**: `true` если модуль найден
+**Returns**: `true` if module found
 
-**Пример**:
+**Example**:
 ```cpp
 ModuleInfo info;
-if (registry.FindModule(L"client.dll", info)) {
+if (registry.FindModule(L"app.dll", info)) {
     std::wcout << L"Base: 0x" << std::hex << info.baseAddress << std::endl;
 }
 ```
@@ -124,13 +126,13 @@ if (registry.FindModule(L"client.dll", info)) {
 ```cpp
 uintptr_t GetModuleBase(const std::wstring& moduleName) const;
 ```
-Возвращает базовый адрес модуля или `0` если не найден.
+Returns module base address or `0` if not found.
 
-**Пример**:
+**Example**:
 ```cpp
-uintptr_t clientBase = registry.GetModuleBase(L"client.dll");
-if (clientBase != 0) {
-    std::wcout << L"client.dll base: 0x" << std::hex << clientBase << std::endl;
+uintptr_t appBase = registry.GetModuleBase(L"app.dll");
+if (appBase != 0) {
+    std::wcout << L"app.dll base: 0x" << std::hex << appBase << std::endl;
 }
 ```
 
@@ -140,14 +142,7 @@ if (clientBase != 0) {
 ```cpp
 const std::vector<ModuleInfo>& GetModules() const;
 ```
-Возвращает вектор всех модулей.
-
-**Пример**:
-```cpp
-for (const auto& mod : registry.GetModules()) {
-    std::wcout << mod.name << L": 0x" << std::hex << mod.baseAddress << std::endl;
-}
-```
+Returns vector of all modules.
 
 ---
 
@@ -155,34 +150,35 @@ for (const auto& mod : registry.GetModules()) {
 ```cpp
 void PrintModules() const;
 ```
-Выводит отформатированный список модулей в консоль.
+Prints formatted module list to console.
 
 ---
 
 ## OffsetStorage
 
-### Конструктор
+### Constructor
 ```cpp
 OffsetStorage();
 ```
 
-### Методы
+### Methods
 
 #### LoadFromFile
 ```cpp
 bool LoadFromFile(const std::wstring& filename);
 ```
-Загружает оффсеты из файла.
+Loads offsets from file.
 
-**Формат файла**:
+**File Format**:
 ```ini
-client.dll+0xDEA964=LocalPlayer
-engine.dll+0x58EFC4=ViewAngles
+# Comment
+app.dll+0xDEA964=PlayerBase
+module2.dll+0x58EFC4=ViewAngles
 ```
 
-**Возвращает**: `true` если файл успешно загружен
+**Returns**: `true` if file successfully loaded
 
-**Пример**:
+**Example**:
 ```cpp
 OffsetStorage storage;
 if (storage.LoadFromFile(L"offsets.cfg")) {
@@ -196,11 +192,11 @@ if (storage.LoadFromFile(L"offsets.cfg")) {
 ```cpp
 bool SaveToFile(const std::wstring& filename);
 ```
-Сохраняет оффсеты в файл.
+Saves offsets to file.
 
-**Внимание**: Абсолютные адреса НЕ сохраняются!
+**Note**: Absolute addresses are NOT saved!
 
-**Возвращает**: `true` если успешно
+**Returns**: `true` if successful
 
 ---
 
@@ -208,14 +204,14 @@ bool SaveToFile(const std::wstring& filename);
 ```cpp
 void AddOffset(const OffsetEntry& entry);
 ```
-Добавляет новый оффсет в хранилище.
+Adds new offset to storage.
 
-**Пример**:
+**Example**:
 ```cpp
 OffsetEntry entry;
-entry.moduleName = L"client.dll";
+entry.moduleName = L"app.dll";
 entry.offset = 0xDEA964;
-entry.description = L"LocalPlayer";
+entry.description = L"PlayerBase";
 
 storage.AddOffset(entry);
 ```
@@ -227,58 +223,34 @@ storage.AddOffset(entry);
 const std::vector<OffsetEntry>& GetOffsets() const;
 std::vector<OffsetEntry>& GetOffsets();
 ```
-Возвращает вектор оффсетов.
-
-**Пример**:
-```cpp
-for (const auto& offset : storage.GetOffsets()) {
-    if (offset.isResolved) {
-        std::wcout << offset.description << L": 0x" 
-                   << std::hex << offset.resolvedAddress << std::endl;
-    }
-}
-```
+Returns offsets vector.
 
 ---
 
-#### Clear
+#### Clear / Count
 ```cpp
-void Clear();
+void Clear();           // Clears all offsets
+size_t Count() const;   // Returns offset count
 ```
-Очищает все оффсеты из хранилища.
-
----
-
-#### Count
-```cpp
-size_t Count() const;
-```
-Возвращает количество оффсетов в хранилище.
 
 ---
 
 ## AddressResolver
 
-### Конструктор
+### Constructor
 ```cpp
 AddressResolver();
 ```
 
-### Методы
+### Methods
 
 #### SetModuleRegistry
 ```cpp
 void SetModuleRegistry(const ModuleRegistry* registry);
 ```
-Устанавливает реестр модулей для разрешения адресов.
+Sets module registry for address resolution.
 
-**Важно**: Вызовите этот метод перед использованием `ResolveOffset()` или `ResolveAll()`!
-
-**Пример**:
-```cpp
-AddressResolver resolver;
-resolver.SetModuleRegistry(&moduleRegistry);
-```
+**Important**: Call this method before using `ResolveOffset()` or `ResolveAll()`!
 
 ---
 
@@ -286,23 +258,12 @@ resolver.SetModuleRegistry(&moduleRegistry);
 ```cpp
 bool ResolveOffset(OffsetEntry& entry);
 ```
-Разрешает один оффсет, вычисляя абсолютный адрес.
+Resolves single offset, calculating absolute address.
 
-**Параметры**:
-- `entry` — структура оффсета (модифицируется)
+**Parameters**:
+- `entry` — offset structure (modified)
 
-**Возвращает**: `true` если успешно разрешён
-
-**Пример**:
-```cpp
-OffsetEntry entry;
-entry.moduleName = L"client.dll";
-entry.offset = 0xDEA964;
-
-if (resolver.ResolveOffset(entry)) {
-    std::wcout << L"Resolved to: 0x" << std::hex << entry.resolvedAddress << std::endl;
-}
-```
+**Returns**: `true` if successfully resolved
 
 ---
 
@@ -310,15 +271,9 @@ if (resolver.ResolveOffset(entry)) {
 ```cpp
 int ResolveAll(OffsetStorage& storage);
 ```
-Разрешает все оффсеты в хранилище.
+Resolves all offsets in storage.
 
-**Возвращает**: Количество успешно разрешённых оффсетов
-
-**Пример**:
-```cpp
-int resolved = resolver.ResolveAll(offsetStorage);
-std::wcout << L"Resolved " << resolved << L"/" << offsetStorage.Count() << std::endl;
-```
+**Returns**: Number of successfully resolved offsets
 
 ---
 
@@ -326,25 +281,169 @@ std::wcout << L"Resolved " << resolved << L"/" << offsetStorage.Count() << std::
 ```cpp
 uintptr_t CalculateAddress(const std::wstring& moduleName, uintptr_t offset);
 ```
-Вычисляет абсолютный адрес вручную без изменения структуры.
+Calculates absolute address manually without modifying structure.
 
-**Возвращает**: Абсолютный адрес или `0` если модуль не найден
+**Returns**: Absolute address or `0` if module not found
 
-**Пример**:
+---
+
+## PointerChainResolver
+
+### Constructor
 ```cpp
-uintptr_t localPlayer = resolver.CalculateAddress(L"client.dll", 0xDEA964);
+PointerChainResolver(MemoryReader& reader, ModuleRegistry& registry);
+```
+
+### Methods
+
+#### ResolveChain
+```cpp
+bool ResolveChain(const PointerChainEntry& chain, 
+                  uintptr_t& finalAddress, 
+                  std::string& valueStr);
+```
+Resolves multi-level pointer chain.
+
+**Parameters**:
+- `chain` — pointer chain definition
+- `finalAddress` — output final address
+- `valueStr` — output value as string
+
+**Returns**: `true` if chain successfully resolved
+
+**Example**:
+```cpp
+PointerChainEntry chain;
+chain.moduleName = L"app.dll";
+chain.baseOffset = 0x17E0A8;
+chain.offsets = {0x18, 0x70, 0x2D0};
+chain.valueType = "float";
+chain.description = "Position";
+
+uintptr_t finalAddr;
+std::string value;
+if (resolver.ResolveChain(chain, finalAddr, value)) {
+    std::cout << "Value: " << value << std::endl;
+}
 ```
 
 ---
 
-## Структуры данных
+## MemoryReader
+
+### Constructor
+```cpp
+MemoryReader(HANDLE processHandle = nullptr);
+```
+
+### Methods
+
+#### SetProcessHandle
+```cpp
+void SetProcessHandle(HANDLE processHandle);
+```
+Sets process handle for memory reading.
+
+**Important**: Call this after attaching to process!
+
+---
+
+#### ReadMemory
+```cpp
+bool ReadMemory(uintptr_t address, void* buffer, size_t size);
+```
+Reads raw memory.
+
+**Parameters**:
+- `address` — memory address to read
+- `buffer` — output buffer
+- `size` — bytes to read
+
+**Returns**: `true` if successful
+
+---
+
+#### Read (Template)
+```cpp
+template<typename T>
+bool Read(uintptr_t address, T& value);
+```
+Type-safe memory read.
+
+**Example**:
+```cpp
+int health;
+if (reader.Read(0x7FF6A2DEA964, health)) {
+    std::cout << "Health: " << health << std::endl;
+}
+```
+
+---
+
+## DebugLog (Static Class)
+
+### Methods
+
+#### Enable / Disable / Toggle
+```cpp
+static void Enable();
+static void Disable();
+static void Toggle();
+static bool IsEnabled();
+```
+Controls debug output state.
+
+**Example**:
+```cpp
+DebugLog::Enable();  // Turn on debug mode
+```
+
+---
+
+#### EnableFileLogging
+```cpp
+static void EnableFileLogging(const std::string& filename = "debug_log.txt");
+static void DisableFileLogging();
+```
+Controls file logging.
+
+**Example**:
+```cpp
+DebugLog::EnableFileLogging("my_debug.txt");
+```
+
+---
+
+#### Logging Methods
+```cpp
+static void Info(const std::string& message);
+static void Success(const std::string& message);
+static void Warning(const std::string& message);
+static void Error(const std::string& message);
+static void Step(const std::string& message);
+static void Address(const std::string& label, uintptr_t address);
+static void PointerRead(uintptr_t address, uintptr_t value);
+static void ChainStep(int step, int total, uintptr_t address, uintptr_t value);
+```
+
+**Example**:
+```cpp
+DBG_INFO("Starting pointer chain resolution");
+DBG_ADDR("Module base", 0x7FF6A2000000);
+DBG_STEP("Reading first pointer");
+DBG_SUCCESS("Chain resolved successfully");
+```
+
+---
+
+## Data Structures
 
 ### ModuleInfo
 ```cpp
 struct ModuleInfo {
-    std::wstring name;          // Имя модуля
-    uintptr_t baseAddress;      // Базовый адрес (ImageBase)
-    uintptr_t size;             // Размер модуля (SizeOfImage)
+    std::wstring name;          // Module name
+    uintptr_t baseAddress;      // Base address (ImageBase)
+    uintptr_t size;             // Module size (SizeOfImage)
 };
 ```
 
@@ -353,306 +452,59 @@ struct ModuleInfo {
 ### OffsetEntry
 ```cpp
 struct OffsetEntry {
-    std::wstring moduleName;    // Имя модуля
-    uintptr_t offset;           // Оффсет от базы модуля
-    std::wstring description;   // Описание
+    std::wstring moduleName;    // Module name
+    uintptr_t offset;           // Offset from module base
+    std::wstring description;   // Description
     
-    // Runtime данные (не сохраняются):
-    uintptr_t resolvedAddress;  // Абсолютный адрес
-    bool isResolved;            // Флаг разрешения
-    
-    OffsetEntry();              // Конструктор по умолчанию
+    // Runtime data (not saved):
+    uintptr_t resolvedAddress;  // Absolute address
+    bool isResolved;            // Resolution flag
 };
 ```
 
 ---
 
-## Примеры расширения
-
-### 1. Добавление Memory Reader
-
-Добавьте в `ProcessManager.h`:
-
+### PointerChainEntry
 ```cpp
-class ProcessManager {
-public:
-    // ... существующие методы ...
+struct PointerChainEntry {
+    std::wstring moduleName;        // Module name
+    uintptr_t baseOffset;           // Base offset from module
+    std::vector<uintptr_t> offsets; // Pointer chain offsets
+    std::string valueType;          // "int", "float", "double", etc.
+    std::string description;        // Chain description
     
-    // Чтение памяти процесса
-    template<typename T>
-    bool ReadMemory(uintptr_t address, T& outValue) {
-        if (!m_isAttached) return false;
-        
-        SIZE_T bytesRead;
-        return ReadProcessMemory(
-            m_hProcess,
-            reinterpret_cast<LPCVOID>(address),
-            &outValue,
-            sizeof(T),
-            &bytesRead
-        ) && bytesRead == sizeof(T);
-    }
-    
-    // Чтение массива байт
-    bool ReadMemoryRaw(uintptr_t address, void* buffer, size_t size) {
-        if (!m_isAttached) return false;
-        
-        SIZE_T bytesRead;
-        return ReadProcessMemory(
-            m_hProcess,
-            reinterpret_cast<LPCVOID>(address),
-            buffer,
-            size,
-            &bytesRead
-        ) && bytesRead == size;
-    }
+    // Runtime data:
+    uintptr_t resolvedAddress;
+    std::string resolvedValue;
+    bool isResolved;
 };
-```
-
-**Использование**:
-```cpp
-ProcessManager pm;
-pm.AttachToProcess(L"game.exe");
-
-// Читаем int по адресу
-int health;
-if (pm.ReadMemory(0x7FF6A2DEA964, health)) {
-    std::cout << "Health: " << health << std::endl;
-}
-
-// Читаем float массив
-float position[3];
-if (pm.ReadMemoryRaw(0x7FF6A2DEA970, position, sizeof(position))) {
-    std::cout << "Position: " << position[0] << ", " 
-              << position[1] << ", " << position[2] << std::endl;
-}
 ```
 
 ---
 
-### 2. Добавление Pattern Scanner
+## Debug Macros
 
-Добавьте в `ModuleRegistry.h`:
-
-```cpp
-class ModuleRegistry {
-public:
-    // ... существующие методы ...
-    
-    // Поиск паттерна в модуле
-    bool FindPattern(
-        const std::wstring& moduleName,
-        const std::vector<byte>& pattern,
-        const std::string& mask,
-        uintptr_t& outAddress,
-        HANDLE hProcess
-    );
-};
-```
-
-В `ModuleRegistry.cpp`:
+Convenience macros for debugging (defined in DebugLog.h):
 
 ```cpp
-bool ModuleRegistry::FindPattern(
-    const std::wstring& moduleName,
-    const std::vector<byte>& pattern,
-    const std::string& mask,
-    uintptr_t& outAddress,
-    HANDLE hProcess
-) {
-    ModuleInfo modInfo;
-    if (!FindModule(moduleName, modInfo)) {
-        return false;
-    }
-    
-    // Читаем память модуля
-    std::vector<byte> buffer(modInfo.size);
-    SIZE_T bytesRead;
-    if (!ReadProcessMemory(hProcess, 
-                           reinterpret_cast<LPCVOID>(modInfo.baseAddress),
-                           buffer.data(), 
-                           modInfo.size, 
-                           &bytesRead)) {
-        return false;
-    }
-    
-    // Поиск паттерна
-    for (size_t i = 0; i < buffer.size() - pattern.size(); i++) {
-        bool found = true;
-        for (size_t j = 0; j < pattern.size(); j++) {
-            if (mask[j] != '?' && buffer[i + j] != pattern[j]) {
-                found = false;
-                break;
-            }
-        }
-        
-        if (found) {
-            outAddress = modInfo.baseAddress + i;
-            return true;
-        }
-    }
-    
-    return false;
-}
-```
-
-**Использование**:
-```cpp
-// Паттерн: 55 8B EC ?? ?? ?? E8
-std::vector<byte> pattern = {0x55, 0x8B, 0xEC, 0x00, 0x00, 0x00, 0xE8};
-std::string mask = "xxx????x";
-
-uintptr_t address;
-if (registry.FindPattern(L"client.dll", pattern, mask, address, pm.GetHandle())) {
-    std::wcout << L"Pattern found at: 0x" << std::hex << address << std::endl;
-}
-```
-
----
-
-### 3. Добавление Pointer Chain Resolver
-
-Добавьте в `AddressResolver.h`:
-
-```cpp
-class AddressResolver {
-public:
-    // ... существующие методы ...
-    
-    // Разрешение цепочки указателей
-    uintptr_t ResolvePointerChain(
-        HANDLE hProcess,
-        uintptr_t baseAddress,
-        const std::vector<uintptr_t>& offsets
-    );
-};
-```
-
-В `AddressResolver.cpp`:
-
-```cpp
-uintptr_t AddressResolver::ResolvePointerChain(
-    HANDLE hProcess,
-    uintptr_t baseAddress,
-    const std::vector<uintptr_t>& offsets
-) {
-    uintptr_t address = baseAddress;
-    
-    for (size_t i = 0; i < offsets.size(); i++) {
-        // Читаем указатель
-        uintptr_t ptr;
-        SIZE_T bytesRead;
-        if (!ReadProcessMemory(hProcess, 
-                               reinterpret_cast<LPCVOID>(address),
-                               &ptr, 
-                               sizeof(ptr), 
-                               &bytesRead)) {
-            return 0;
-        }
-        
-        // Добавляем оффсет
-        address = ptr + offsets[i];
-    }
-    
-    return address;
-}
-```
-
-**Использование**:
-```cpp
-// Цепочка: [[client.dll + 0xDEA964] + 0x10] + 0x20
-uintptr_t base = resolver.CalculateAddress(L"client.dll", 0xDEA964);
-std::vector<uintptr_t> chain = {0x10, 0x20};
-
-uintptr_t finalAddress = resolver.ResolvePointerChain(
-    pm.GetHandle(), 
-    base, 
-    chain
-);
-
-if (finalAddress != 0) {
-    std::wcout << L"Final address: 0x" << std::hex << finalAddress << std::endl;
-}
-```
-
----
-
-### 4. JSON Support (с nlohmann/json)
-
-Добавьте в `OffsetStorage.h`:
-
-```cpp
-#include <nlohmann/json.hpp>
-
-class OffsetStorage {
-public:
-    // ... существующие методы ...
-    
-    bool LoadFromJSON(const std::wstring& filename);
-    bool SaveToJSON(const std::wstring& filename);
-};
-```
-
-В `OffsetStorage.cpp`:
-
-```cpp
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
-
-bool OffsetStorage::SaveToJSON(const std::wstring& filename) {
-    json j;
-    j["version"] = "1.0";
-    j["offsets"] = json::array();
-    
-    for (const auto& entry : m_offsets) {
-        json offset;
-        // Конвертируем wstring в string
-        std::string modName(entry.moduleName.begin(), entry.moduleName.end());
-        std::string desc(entry.description.begin(), entry.description.end());
-        
-        offset["module"] = modName;
-        offset["offset"] = entry.offset;
-        offset["description"] = desc;
-        
-        j["offsets"].push_back(offset);
-    }
-    
-    std::ofstream file(filename);
-    if (!file.is_open()) return false;
-    
-    file << j.dump(4); // Pretty print with 4 spaces
-    file.close();
-    
-    return true;
-}
-```
-
-**Формат JSON**:
-```json
-{
-    "version": "1.0",
-    "offsets": [
-        {
-            "module": "client.dll",
-            "offset": 15443300,
-            "description": "LocalPlayer"
-        },
-        {
-            "module": "engine.dll",
-            "offset": 5828548,
-            "description": "ViewAngles"
-        }
-    ]
-}
+#define DBG_INFO(msg)           DebugLog::Info(msg)
+#define DBG_SUCCESS(msg)        DebugLog::Success(msg)
+#define DBG_WARN(msg)           DebugLog::Warning(msg)
+#define DBG_ERROR(msg)          DebugLog::Error(msg)
+#define DBG_STEP(msg)           DebugLog::Step(msg)
+#define DBG_ADDR(label, addr)   DebugLog::Address(label, addr)
+#define DBG_PTR(addr, val)      DebugLog::PointerRead(addr, val)
+#define DBG_CHAIN(s, t, a, v)   DebugLog::ChainStep(s, t, a, v)
+#define DBG_MEM(type, val)      DebugLog::MemoryValue(type, val)
 ```
 
 ---
 
 ## Best Practices
 
-### 1. Обработка ошибок
+### 1. Error Handling
 ```cpp
-if (!pm.AttachToProcess(L"game.exe")) {
+if (!pm.AttachToProcess(L"example.exe")) {
     std::wcerr << L"Failed to attach to process" << std::endl;
     return 1;
 }
@@ -662,33 +514,46 @@ if (!pm.AttachToProcess(L"game.exe")) {
 ```cpp
 {
     ProcessManager pm;
-    pm.AttachToProcess(L"game.exe");
-    // ... работа с процессом ...
-} // Деструктор автоматически вызовет Detach()
+    pm.AttachToProcess(L"example.exe");
+    // ... work with process ...
+} // Destructor automatically calls Detach()
 ```
 
-### 3. Проверка состояния
+### 3. Handle Updates
 ```cpp
-if (!pm.IsAttached()) {
-    std::wcerr << L"Not attached to any process" << std::endl;
-    return;
+// After attaching to process, update MemoryReader handle
+if (pm.AttachToProcess(processName)) {
+    memoryReader.SetProcessHandle(pm.GetHandle());
 }
 ```
 
 ### 4. Unicode Strings
 ```cpp
-// Всегда используйте wstring для имён процессов/модулей
-std::wstring processName = L"game.exe";
+// Always use wstring for process/module names
+std::wstring processName = L"example.exe";
 pm.AttachToProcess(processName);
+```
+
+### 5. Debug Mode
+```cpp
+// Enable debug for troubleshooting
+DebugLog::Enable();
+DebugLog::EnableFileLogging();
+
+// ... perform operations ...
+
+// Disable when done
+DebugLog::Disable();
+DebugLog::DisableFileLogging();
 ```
 
 ---
 
 ## Thread Safety
 
-**⚠️ Важно**: Текущая реализация **НЕ потокобезопасна**!
+**⚠️ Important**: Current implementation is **NOT thread-safe**!
 
-Если планируете многопоточность:
+For multithreading, add mutex protection:
 
 ```cpp
 #include <mutex>
@@ -700,19 +565,19 @@ private:
 public:
     bool AttachToProcess(const std::wstring& processName) {
         std::lock_guard<std::mutex> lock(m_mutex);
-        // ... оригинальный код ...
+        // ... original code ...
     }
 };
 ```
 
 ---
 
-## Заключение
+## Conclusion
 
-Это API предоставляет базу для:
-- Чтения памяти процессов
-- Pattern scanning
-- Pointer chain resolution
-- Расширенного хранения данных
+This API provides foundation for:
+- Process memory reading
+- ASLR-safe offset storage
+- Multi-level pointer chain resolution
+- Debug logging with colored output and file support
 
-Для вопросов и предложений — см. исходный код и комментарии в `.h` файлах.
+For questions and suggestions — see source code and comments in `.h` files.

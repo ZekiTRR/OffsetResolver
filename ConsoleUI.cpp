@@ -1,4 +1,5 @@
 #include "ConsoleUI.h"
+#include "DebugLog.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -32,29 +33,102 @@ void ConsoleUI::ShowMainMenu()
         ClearScreen();
         std::wcout << L"====================================================\n";
         std::wcout << L"    Process Module & Offset Management Tool        \n";
-        std::wcout << L"====================================================\n\n";
+        std::wcout << L"====================================================\n";
+
+        // Показываем статус debug режима
+        if (DebugLog::IsEnabled())
+        {
+            DebugLog::SetColor(DebugLog::Color::Success);
+            std::wcout << L"    [DEBUG MODE ENABLED]";
+            if (DebugLog::IsFileLoggingEnabled())
+                std::wcout << L" [FILE LOGGING ON]";
+            std::wcout << L"\n";
+            DebugLog::ResetColor();
+        }
+        std::wcout << L"\n";
 
         std::wcout << L"Choose mode:\n";
         std::wcout << L"  1. Offset Manager (ASLR-safe offset storage)\n";
         std::wcout << L"  2. Pointer Chain Manager (multi-level pointers)\n";
         std::wcout << L"  3. Module Dumper (Export module list to file)\n";
-        std::wcout << L"  0. Exit\n\n";
+        std::wcout << L"  0. Exit\n";
+        std::wcout << L"\n  Commands: 'debug' - toggle debug | 'debugfile' - toggle file log\n\n";
 
-        int choice = GetChoice(L"Select option", 0, 3);
+        std::wstring input = GetInput(L"Select option");
+
+        // Проверка на команду debug
+        if (input == L"debug" || input == L"DEBUG")
+        {
+            DebugLog::Toggle();
+            if (DebugLog::IsEnabled())
+            {
+                std::wcout << L"\n[+] Debug mode ENABLED - detailed logging active\n";
+            }
+            else
+            {
+                std::wcout << L"\n[-] Debug mode DISABLED\n";
+            }
+            Pause();
+            continue;
+        }
+
+        // Проверка на команду debugfile
+        if (input == L"debugfile" || input == L"DEBUGFILE")
+        {
+            DebugLog::ToggleFileLogging();
+            if (DebugLog::IsFileLoggingEnabled())
+            {
+                std::wcout << L"\n[+] File logging ENABLED - writing to debug_log.txt\n";
+                // Автоматически включаем debug режим если он выключен
+                if (!DebugLog::IsEnabled())
+                {
+                    DebugLog::Enable();
+                    std::wcout << L"[+] Debug mode auto-enabled\n";
+                }
+            }
+            else
+            {
+                std::wcout << L"\n[-] File logging DISABLED\n";
+            }
+            Pause();
+            continue;
+        }
+
+        int choice = -1;
+        try
+        {
+            choice = std::stoi(input);
+        }
+        catch (...)
+        {
+            std::wcout << L"Invalid input.\n";
+            Pause();
+            continue;
+        }
+
+        DBG_INFO(L"Main menu choice: " + std::to_wstring(choice));
 
         switch (choice)
         {
         case 1:
+            DBG_STEP(L"Entering Offset Manager Menu");
             ShowOffsetManagerMenu();
             break;
         case 2:
+            DBG_STEP(L"Entering Pointer Chain Manager Menu");
             ShowPointerChainManagerMenu();
             break;
         case 3:
+            DBG_STEP(L"Entering Module Dumper Menu");
             ShowModuleDumperMenu();
             break;
         case 0:
+            DBG_INFO(L"Exiting application");
+            DebugLog::DisableFileLogging(); // Закрываем файл при выходе
             return;
+        default:
+            std::wcout << L"Invalid option.\n";
+            Pause();
         }
     }
 }
@@ -230,6 +304,11 @@ void ConsoleUI::ShowModuleDumperMenu()
         return;
     }
 
+    // Обновляем handle в MemoryReader
+    m_memoryReader.SetProcessHandle(m_processManager.GetHandle());
+    DBG_INFO(L"Updated MemoryReader handle in Module Dumper");
+    DebugLog::HandleInfo(m_processManager.GetHandle());
+
     if (!m_moduleRegistry.LoadModules(m_processManager.GetPID()))
     {
         Pause();
@@ -260,6 +339,11 @@ void ConsoleUI::AttachToProcessFlow()
 
     if (m_processManager.AttachToProcess(processName))
     {
+        // ВАЖНО: Обновляем handle в MemoryReader после подключения
+        m_memoryReader.SetProcessHandle(m_processManager.GetHandle());
+        DBG_INFO(L"Updated MemoryReader handle");
+        DebugLog::HandleInfo(m_processManager.GetHandle());
+
         m_moduleRegistry.LoadModules(m_processManager.GetPID());
         m_addressResolver.SetModuleRegistry(&m_moduleRegistry);
     }
@@ -291,7 +375,7 @@ void ConsoleUI::AddOffsetFlow()
     std::wcout << L"\n=== Add New Offset ===\n\n";
 
     OffsetEntry entry;
-    entry.moduleName = GetInput(L"Module name (e.g., client.dll)");
+    entry.moduleName = GetInput(L"Module name (e.g., app.dll)");
 
     // Check if module exists
     ModuleInfo modInfo;
@@ -313,7 +397,7 @@ void ConsoleUI::AddOffsetFlow()
     }
 
     entry.offset = GetHexInput(L"Offset (hex, e.g., 0xDEA964)");
-    entry.description = GetInput(L"Description (optional, e.g., LocalPlayer)");
+    entry.description = GetInput(L"Description (optional, e.g., DataPointer)");
 
     m_offsetStorage.AddOffset(entry);
     std::wcout << L"\n[+] Offset added successfully!\n";

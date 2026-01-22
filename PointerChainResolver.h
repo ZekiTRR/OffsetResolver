@@ -10,7 +10,7 @@
 // Single pointer chain configuration
 struct PointerChain
 {
-    std::wstring moduleName;        // "client.dll"
+    std::wstring moduleName;        // "app.dll"
     uintptr_t baseOffset;           // 0x649910
     std::vector<uintptr_t> offsets; // [0x18, 0x70, 0x370, 0x2D0]
     ValueType valueType;            // INT / FLOAT / DOUBLE

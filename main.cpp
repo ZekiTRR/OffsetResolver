@@ -24,8 +24,8 @@
 // - Follow console instructions
 //
 // OFFSET FILE FORMAT:
-// client.dll+0xDEA964=LocalPlayer
-// engine.dll+0x58EFC4=ViewAngles
+// app.dll+0xDEA964=DataPointer
+// module2.dll+0x58EFC4=ViewAngles
 //
 // POINTER CHAIN JSON FORMAT:
 // {
