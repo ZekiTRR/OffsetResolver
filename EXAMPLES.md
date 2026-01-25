@@ -1,6 +1,5 @@
 # Usage Examples
 
-**[English](EXAMPLES.md) | [Русский](RUS/EXAMPLES.md)**
 
 ## 📋 Contents
 

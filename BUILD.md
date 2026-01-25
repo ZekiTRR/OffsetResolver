@@ -1,6 +1,5 @@
 # Build Instructions
 
-**[English](BUILD.md) | [Русский](RUS/BUILD.md)**
 
 ## Method 1: PowerShell Script (Recommended)
 

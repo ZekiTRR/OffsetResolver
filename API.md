@@ -1,7 +1,5 @@
 # API Reference
 
-**[English](API.md) | [Русский](RUS/API.md)**
-
 Documentation for extending application functionality.
 
 ---

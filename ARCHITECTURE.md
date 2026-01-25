@@ -1,6 +1,5 @@
 # Application Architecture
 
-**[English](ARCHITECTURE.md) | [Русский](RUS/ARCHITECTURE.md)**
 
 ## 📐 Overview Diagram
 

@@ -2,7 +2,6 @@
 
 Console application for Windows (x64) for managing offsets, pointer chains, and process modules in reverse engineering context.
 
-**[Russian Version / Русская версия](RUS/README.md)**
 
 ## 🎯 Purpose
 
@@ -192,7 +191,6 @@ Process-Module-Dumper/
 │   ├── ARCHITECTURE.md
 │   ├── API.md
 │   ├── BUILD.md
-│   └── RUS/ (Russian)
 │
 └── Configuration
     ├── build.ps1
@@ -218,8 +216,6 @@ Process-Module-Dumper/
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture |
 | [API.md](API.md) | API reference |
 | [BUILD.md](BUILD.md) | Build instructions |
-
-**Russian**: [RUS/README.md](RUS/README.md)
 
 ---
 
