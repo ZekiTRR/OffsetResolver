@@ -1,6 +1,5 @@
 # Documentation Index 🗺️
 
-**[English](INDEX.md) | [Русский](RUS/INDEX.md)**
 
 > **Main documentation navigation**
 
@@ -133,7 +132,6 @@
 ```
 Process-Module-Dumper/
 ├── 📘 README_EN.md          # English readme
-├── 📘 README.md             # Russian readme
 ├── ⚡ QUICKSTART.md         # Quick start guide
 ├── 📗 ARCHITECTURE.md       # Architecture docs
 ├── 📕 API.md                # API reference
@@ -144,14 +142,6 @@ Process-Module-Dumper/
 ├── 📔 CHANGELOG.md          # Version history
 ├── 🗺️ INDEX.md              # This file
 │
-├── 📂 RUS/                  # Russian documentation
-│   ├── README.md
-│   ├── QUICKSTART.md
-│   ├── ARCHITECTURE.md
-│   ├── API.md
-│   ├── EXAMPLES.md
-│   ├── BUILD.md
-│   └── INDEX.md
 │
 ├── 💻 Source Files
 │   ├── main.cpp

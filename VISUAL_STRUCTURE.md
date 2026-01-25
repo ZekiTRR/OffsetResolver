@@ -1,6 +1,5 @@
 # Visual Structure
 
-**[English](VISUAL_STRUCTURE.md) | [Русский](RUS/VISUAL_STRUCTURE.md)**
 
 ```
 Process-Module-Dumper/
@@ -46,7 +45,6 @@ Process-Module-Dumper/
 │
 ├── 📂 Documentation
 │   ├── 📘 README_EN.md                  # English description
-│   ├── 📘 README.md                     # Russian description
 │   ├── 📗 ARCHITECTURE.md               # Architecture details
 │   ├── 📙 EXAMPLES.md                   # Usage examples + FAQ
 │   ├── 📕 API.md                        # API reference
@@ -56,14 +54,6 @@ Process-Module-Dumper/
 │   ├── 📊 VISUAL_STRUCTURE.md           # This file
 │   └── 🗺️ INDEX.md                      # Navigation
 │
-├── 📂 RUS/                              # Russian documentation
-│   ├── README.md
-│   ├── QUICKSTART.md
-│   ├── ARCHITECTURE.md
-│   ├── API.md
-│   ├── EXAMPLES.md
-│   ├── BUILD.md
-│   └── ...
 │
 ├── 📂 Configuration
 │   ├── ⚙️ CMakeLists.txt                # CMake configuration

@@ -1,33 +1,14 @@
 # Process Module & Offset Management Tool
 
-**[English](README_EN.md) | [Русский](RUS/README.md)**
-
-Language Selection / Выбор языка:
-
-| Version | Link | Description |
-|---------|------|-------------|
-| **English** | [README_EN.md](README_EN.md) | Full documentation in English |
-| **Русский** | [RUS/README.md](RUS/README.md) | Полная документация на русском |
-
----
 
 ## 📖 Quick Documentation Links
 
-### English
 - [Full Overview](README_EN.md)
 - [Quick Start - 60 seconds](QUICKSTART.md)
 - [Architecture Details](ARCHITECTURE.md)
 - [Usage Examples](EXAMPLES.md)
 - [API Reference](API.md)
 - [Build Guide](BUILD.md)
-
-### Русский
-- [Полный обзор](RUS/README.md)
-- [Быстрый старт - 60 сек](RUS/QUICKSTART.md)
-- [Архитектура](RUS/ARCHITECTURE.md)
-- [Примеры использования](RUS/EXAMPLES.md)
-- [Справочник API](RUS/API.md)
-- [Руководство сборки](RUS/BUILD.md)
 
 ---
 
@@ -107,7 +88,7 @@ module2.dll+0x58EFC4=Pointer3
 
 ✅ Core Implementation Complete (11 source files, ~2000 LOC)  
 ✅ Compilation Successful (Exit Code 0)  
-✅ Documentation Complete (English + Russian)  
+✅ Documentation Complete
 ✅ ASLR Protection Implemented  
 ✅ Build System Ready  
 
@@ -135,16 +116,6 @@ Process-Module-Dumper/
 │   ├── VISUAL_STRUCTURE.md
 │   └── INDEX.md
 │
-├── [Documentation - Russian]
-│   └── RUS/
-│       ├── README.md
-│       ├── QUICKSTART.md
-│       ├── ARCHITECTURE.md
-│       ├── EXAMPLES.md
-│       ├── API.md
-│       ├── BUILD.md
-│       ├── VISUAL_STRUCTURE.md
-│       └── INDEX.md
 │
 ├── [Build]
 │   ├── CMakeLists.txt

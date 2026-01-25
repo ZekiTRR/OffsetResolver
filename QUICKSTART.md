@@ -1,6 +1,5 @@
 # Quick Start Guide - 60 Seconds
 
-**[English](QUICKSTART.md) | [Русский](RUS/QUICKSTART.md)**
 
 Get up and running in 60 seconds!
 
