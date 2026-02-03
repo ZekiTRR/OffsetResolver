@@ -53,6 +53,11 @@ public:
             return 0;
         }
     }
+
+    static std::wstring ToWString(const std::string &value)
+    {
+        return std::wstring(value.begin(), value.end());
+    }
 };
 
 void PointerChainStorage::AddChain(const PointerChain &chain)
@@ -112,8 +117,8 @@ bool PointerChainStorage::LoadFromFile(const std::wstring &filename)
             // Extract fields
             chain.moduleName = line.substr(0, pos1);
 
-            std::string baseOffsetStr(line.substr(pos1 + 1, pos2 - pos1 - 1).begin(),
-                                      line.substr(pos1 + 1, pos2 - pos1 - 1).end());
+            std::wstring baseOffsetW = line.substr(pos1 + 1, pos2 - pos1 - 1);
+            std::string baseOffsetStr(baseOffsetW.begin(), baseOffsetW.end());
             chain.baseOffset = SimpleJSON::HexStringToUintPtr(baseOffsetStr);
 
             std::wstring offsetsStr = line.substr(pos2 + 1, pos3 - pos2 - 1);
@@ -125,8 +130,8 @@ bool PointerChainStorage::LoadFromFile(const std::wstring &filename)
                 chain.offsets.push_back(SimpleJSON::HexStringToUintPtr(offsetStr));
             }
 
-            std::string valueTypeStr(line.substr(pos3 + 1, pos4 - pos3 - 1).begin(),
-                                     line.substr(pos3 + 1, pos4 - pos3 - 1).end());
+            std::wstring valueTypeW = line.substr(pos3 + 1, pos4 - pos3 - 1);
+            std::string valueTypeStr(valueTypeW.begin(), valueTypeW.end());
             chain.valueType = SimpleJSON::StringToValueType(valueTypeStr);
 
             chain.description = line.substr(pos4 + 1);
@@ -162,22 +167,20 @@ bool PointerChainStorage::SaveToFile(const std::wstring &filename) const
         for (const auto &chain : m_chains)
         {
             file << chain.moduleName << L"|";
-            file << std::wstring(SimpleJSON::UintPtrToHexString(chain.baseOffset).begin(),
-                                 SimpleJSON::UintPtrToHexString(chain.baseOffset).end())
-                 << L"|";
+            std::string baseOffsetStr = SimpleJSON::UintPtrToHexString(chain.baseOffset);
+            file << SimpleJSON::ToWString(baseOffsetStr) << L"|";
 
             for (size_t i = 0; i < chain.offsets.size(); ++i)
             {
                 if (i > 0)
                     file << L",";
-                file << std::wstring(SimpleJSON::UintPtrToHexString(chain.offsets[i]).begin(),
-                                     SimpleJSON::UintPtrToHexString(chain.offsets[i]).end());
+                std::string offsetStr = SimpleJSON::UintPtrToHexString(chain.offsets[i]);
+                file << SimpleJSON::ToWString(offsetStr);
             }
 
             file << L"|";
-            file << std::wstring(SimpleJSON::ValueTypeToString(chain.valueType).begin(),
-                                 SimpleJSON::ValueTypeToString(chain.valueType).end())
-                 << L"|";
+            std::string valueTypeStr = SimpleJSON::ValueTypeToString(chain.valueType);
+            file << SimpleJSON::ToWString(valueTypeStr) << L"|";
             file << chain.description << L"\n";
         }
 
@@ -209,6 +212,7 @@ void PointerChainStorage::PrintAllChains() const
         std::wcout << L"    Module: " << chain.moduleName << L"\n";
         std::wcout << L"    Base Offset: 0x" << std::hex << chain.baseOffset << std::dec << L"\n";
         std::wcout << L"    Chain Steps: " << chain.offsets.size() << L"\n";
-        std::wcout << L"    Value Type: " << std::wstring(SimpleJSON::ValueTypeToString(chain.valueType).begin(), SimpleJSON::ValueTypeToString(chain.valueType).end()) << L"\n\n";
+        std::string valueTypeStr = SimpleJSON::ValueTypeToString(chain.valueType);
+        std::wcout << L"    Value Type: " << SimpleJSON::ToWString(valueTypeStr) << L"\n\n";
     }
 }

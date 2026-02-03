@@ -17,9 +17,9 @@ static ValueType StringToValueType(const std::string &str)
     return ValueType::INT; // Default
 }
 
-ConsoleUI::ConsoleUI(ProcessManager &pm, ModuleRegistry &mr, AddressResolver &ar, OffsetStorage &os,
+ConsoleUI::ConsoleUI(ProcessManager &pm, ModuleRegistry &mr,
                      MemoryReader &mr2, PointerChainResolver &pcr, PointerChainStorage &pcs)
-    : m_processManager(pm), m_moduleRegistry(mr), m_addressResolver(ar), m_offsetStorage(os),
+    : m_processManager(pm), m_moduleRegistry(mr),
       m_memoryReader(mr2), m_pointerChainResolver(pcr), m_pointerChainStorage(pcs)
 {
     // Set locale for proper character display
@@ -32,7 +32,7 @@ void ConsoleUI::ShowMainMenu()
     {
         ClearScreen();
         std::wcout << L"====================================================\n";
-        std::wcout << L"    Process Module & Offset Management Tool        \n";
+        std::wcout << L"   Process Module & Pointer Chain Management Tool   \n";
         std::wcout << L"====================================================\n";
 
         // Показываем статус debug режима
@@ -48,9 +48,8 @@ void ConsoleUI::ShowMainMenu()
         std::wcout << L"\n";
 
         std::wcout << L"Choose mode:\n";
-        std::wcout << L"  1. Offset Manager (ASLR-safe offset storage)\n";
-        std::wcout << L"  2. Pointer Chain Manager (multi-level pointers)\n";
-        std::wcout << L"  3. Module Dumper (Export module list to file)\n";
+        std::wcout << L"  1. Pointer Chain Manager (multi-level pointers)\n";
+        std::wcout << L"  2. Module Dumper (Export module list to file)\n";
         std::wcout << L"  0. Exit\n";
         std::wcout << L"\n  Commands: 'debug' - toggle debug | 'debugfile' - toggle file log\n\n";
 
@@ -111,14 +110,10 @@ void ConsoleUI::ShowMainMenu()
         switch (choice)
         {
         case 1:
-            DBG_STEP(L"Entering Offset Manager Menu");
-            ShowOffsetManagerMenu();
-            break;
-        case 2:
             DBG_STEP(L"Entering Pointer Chain Manager Menu");
             ShowPointerChainManagerMenu();
             break;
-        case 3:
+        case 2:
             DBG_STEP(L"Entering Module Dumper Menu");
             ShowModuleDumperMenu();
             break;
@@ -129,84 +124,6 @@ void ConsoleUI::ShowMainMenu()
         default:
             std::wcout << L"Invalid option.\n";
             Pause();
-        }
-    }
-}
-
-void ConsoleUI::ShowOffsetManagerMenu()
-{
-    while (true)
-    {
-        ClearScreen();
-        std::wcout << L"====================================================\n";
-        std::wcout << L"              Offset Manager Mode                    \n";
-        std::wcout << L"====================================================\n\n";
-
-        // Show status
-        if (m_processManager.IsAttached())
-        {
-            std::wcout << L"[+] Process: " << m_processManager.GetProcessName()
-                       << L" (PID: " << m_processManager.GetPID() << L")\n";
-        }
-        else
-        {
-            std::wcout << L"[ ] Process: Not attached\n";
-        }
-
-        if (m_moduleRegistry.IsLoaded())
-        {
-            std::wcout << L"[+] Modules: " << m_moduleRegistry.GetModules().size() << L" loaded\n";
-        }
-        else
-        {
-            std::wcout << L"[ ] Modules: Not loaded\n";
-        }
-
-        std::wcout << L"[+] Offsets: " << m_offsetStorage.Count() << L" in storage";
-        if (m_offsetStorage.IsModified())
-        {
-            std::wcout << L" (modified)";
-        }
-        std::wcout << L"\n\n";
-
-        std::wcout << L"Options:\n";
-        std::wcout << L"  1. Attach to process\n";
-        std::wcout << L"  2. Load offsets from file\n";
-        std::wcout << L"  3. Add new offset\n";
-        std::wcout << L"  4. Resolve all offsets (calculate addresses)\n";
-        std::wcout << L"  5. View offsets and resolved addresses\n";
-        std::wcout << L"  6. Save offsets to file\n";
-        std::wcout << L"  7. View module list\n";
-        std::wcout << L"  0. Back to main menu\n\n";
-
-        int choice = GetChoice(L"Select option", 0, 7);
-
-        switch (choice)
-        {
-        case 1:
-            AttachToProcessFlow();
-            break;
-        case 2:
-            LoadOffsetsFlow();
-            break;
-        case 3:
-            AddOffsetFlow();
-            break;
-        case 4:
-            ResolveOffsetsFlow();
-            break;
-        case 5:
-            ViewOffsetsFlow();
-            break;
-        case 6:
-            SaveOffsetsFlow();
-            break;
-        case 7:
-            m_moduleRegistry.PrintModules();
-            Pause();
-            break;
-        case 0:
-            return;
         }
     }
 }
@@ -330,7 +247,7 @@ void ConsoleUI::ShowModuleDumperMenu()
 }
 
 // ============================================================================
-// Offset Manager Functions
+// Common Functions
 // ============================================================================
 
 void ConsoleUI::AttachToProcessFlow()
@@ -345,137 +262,7 @@ void ConsoleUI::AttachToProcessFlow()
         DebugLog::HandleInfo(m_processManager.GetHandle());
 
         m_moduleRegistry.LoadModules(m_processManager.GetPID());
-        m_addressResolver.SetModuleRegistry(&m_moduleRegistry);
     }
-
-    Pause();
-}
-
-void ConsoleUI::LoadOffsetsFlow()
-{
-    std::wstring filename = GetInput(L"Enter config filename (e.g., offsets.cfg)");
-
-    if (m_offsetStorage.LoadFromFile(filename))
-    {
-        m_currentConfigFile = filename;
-    }
-
-    Pause();
-}
-
-void ConsoleUI::AddOffsetFlow()
-{
-    if (!m_moduleRegistry.IsLoaded())
-    {
-        std::wcout << L"\n[-] Please attach to process first!\n";
-        Pause();
-        return;
-    }
-
-    std::wcout << L"\n=== Add New Offset ===\n\n";
-
-    OffsetEntry entry;
-    entry.moduleName = GetInput(L"Module name (e.g., app.dll)");
-
-    // Check if module exists
-    ModuleInfo modInfo;
-    if (!m_moduleRegistry.FindModule(entry.moduleName, modInfo))
-    {
-        std::wcout << L"[!] Warning: Module '" << entry.moduleName << L"' not found in process.\n";
-        std::wcout << L"Continue anyway? (y/n): ";
-        std::wstring answer;
-        std::getline(std::wcin, answer);
-        if (answer != L"y" && answer != L"Y")
-        {
-            return;
-        }
-    }
-    else
-    {
-        std::wcout << L"[+] Module found. Base: 0x" << std::hex << std::uppercase
-                   << modInfo.baseAddress << std::dec << L"\n";
-    }
-
-    entry.offset = GetHexInput(L"Offset (hex, e.g., 0xDEA964)");
-    entry.description = GetInput(L"Description (optional, e.g., DataPointer)");
-
-    m_offsetStorage.AddOffset(entry);
-    std::wcout << L"\n[+] Offset added successfully!\n";
-
-    Pause();
-}
-
-void ConsoleUI::ResolveOffsetsFlow()
-{
-    if (!m_processManager.IsAttached())
-    {
-        std::wcout << L"\n[-] Please attach to process first!\n";
-        Pause();
-        return;
-    }
-
-    if (m_offsetStorage.Count() == 0)
-    {
-        std::wcout << L"\n[-] No offsets in storage. Add offsets or load from file.\n";
-        Pause();
-        return;
-    }
-
-    std::wcout << L"\n=== Resolving Offsets ===\n\n";
-    int resolved = m_addressResolver.ResolveAll(m_offsetStorage);
-
-    if (resolved > 0)
-    {
-        std::wcout << L"\n[+] Resolved " << resolved << L" offsets.\n";
-        std::wcout << L"\nShow resolved addresses? (y/n): ";
-        std::wstring answer;
-        std::getline(std::wcin, answer);
-        if (answer == L"y" || answer == L"Y")
-        {
-            m_offsetStorage.PrintOffsets();
-        }
-    }
-
-    Pause();
-}
-
-void ConsoleUI::ViewOffsetsFlow()
-{
-    m_offsetStorage.PrintOffsets();
-    Pause();
-}
-
-void ConsoleUI::SaveOffsetsFlow()
-{
-    if (m_offsetStorage.Count() == 0)
-    {
-        std::wcout << L"\n[-] No offsets to save.\n";
-        Pause();
-        return;
-    }
-
-    std::wstring filename;
-
-    if (!m_currentConfigFile.empty())
-    {
-        std::wcout << L"\nCurrent file: " << m_currentConfigFile << L"\n";
-        std::wcout << L"Save to this file? (y/n): ";
-        std::wstring answer;
-        std::getline(std::wcin, answer);
-
-        if (answer == L"y" || answer == L"Y")
-        {
-            filename = m_currentConfigFile;
-        }
-    }
-
-    if (filename.empty())
-    {
-        filename = GetInput(L"Enter filename to save (e.g., offsets.cfg)");
-    }
-
-    m_offsetStorage.SaveToFile(filename);
-    m_currentConfigFile = filename;
 
     Pause();
 }

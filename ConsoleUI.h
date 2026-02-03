@@ -1,8 +1,6 @@
 #pragma once
 #include "ProcessManager.h"
 #include "ModuleRegistry.h"
-#include "AddressResolver.h"
-#include "OffsetStorage.h"
 #include "MemoryReader.h"
 #include "PointerChainResolver.h"
 #include "PointerChainStorage.h"
@@ -19,34 +17,24 @@ class ConsoleUI
 private:
     ProcessManager &m_processManager;
     ModuleRegistry &m_moduleRegistry;
-    AddressResolver &m_addressResolver;
-    OffsetStorage &m_offsetStorage;
     MemoryReader &m_memoryReader;
     PointerChainResolver &m_pointerChainResolver;
     PointerChainStorage &m_pointerChainStorage;
 
-    std::wstring m_currentConfigFile;
-
 public:
-    ConsoleUI(ProcessManager &pm, ModuleRegistry &mr, AddressResolver &ar, OffsetStorage &os,
+    ConsoleUI(ProcessManager &pm, ModuleRegistry &mr,
               MemoryReader &mr2, PointerChainResolver &pcr, PointerChainStorage &pcs);
 
     // Main menu
     void ShowMainMenu();
 
     // === Mode menus ===
-    void ShowOffsetManagerMenu();       // Offset management
     void ShowPointerChainManagerMenu(); // Pointer chain management
     void ShowModuleDumperMenu();        // Module dumper
 
 private:
-    // === Offset Manager Functions ===
+    // === Common Functions ===
     void AttachToProcessFlow();
-    void LoadOffsetsFlow();
-    void AddOffsetFlow();
-    void ResolveOffsetsFlow();
-    void ViewOffsetsFlow();
-    void SaveOffsetsFlow();
 
     // === Pointer Chain Manager Functions ===
     void AddPointerChainFlow();

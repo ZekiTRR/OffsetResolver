@@ -1,4 +1,4 @@
-# CMakeLists.txt для Process Module & Offset Management Tool
+# CMakeLists.txt для Process Module & Pointer Chain Management Tool
 
 cmake_minimum_required(VERSION 3.10)
 project(ProcessModuleManager)
@@ -12,24 +12,22 @@ set(SOURCES
     main.cpp
     ProcessManager.cpp
     ModuleRegistry.cpp
-    AddressResolver.cpp
-    OffsetStorage.cpp
     MemoryReader.cpp
     PointerChainResolver.cpp
     PointerChainStorage.cpp
     ConsoleUI.cpp
+    DebugLog.cpp
 )
 
 # Заголовочные файлы
 set(HEADERS
     ProcessManager.h
     ModuleRegistry.h
-    AddressResolver.h
-    OffsetStorage.h
     MemoryReader.h
     PointerChainResolver.h
     PointerChainStorage.h
     ConsoleUI.h
+    DebugLog.h
 )
 
 # Создание исполняемого файла
@@ -50,5 +48,5 @@ if(WIN32)
 endif()
 
 # Вывод информации
-message(STATUS "Building Process Module & Offset Management Tool")
+message(STATUS "Building Process Module & Pointer Chain Management Tool")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
