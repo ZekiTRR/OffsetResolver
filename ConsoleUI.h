@@ -31,6 +31,7 @@ public:
     // === Mode menus ===
     void ShowPointerChainManagerMenu(); // Pointer chain management
     void ShowModuleDumperMenu();        // Module dumper
+    void AddressToModuleOffsetFlow();   // Resolve runtime address -> module + offset
 
 private:
     // === Common Functions ===
@@ -43,6 +44,9 @@ private:
     void LoadChainsFromFileFlow();
     void SaveChainsToFileFlow();
     void PrintChainList();
+
+    // === Structure Export Functions ===
+    void ExportStructureFlow();
 
     // === Module Dumper Functions ===
     void DumpModulesToFile();
