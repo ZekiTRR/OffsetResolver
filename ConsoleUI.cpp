@@ -1,5 +1,8 @@
 #include "ConsoleUI.h"
 #include "DebugLog.h"
+#include <windows.h>
+#include <algorithm>
+#pragma comment(lib, "user32.lib")
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -50,6 +53,8 @@ void ConsoleUI::ShowMainMenu()
         std::wcout << L"Choose mode:\n";
         std::wcout << L"  1. Pointer Chain Manager (multi-level pointers)\n";
         std::wcout << L"  2. Module Dumper (Export module list to file)\n";
+        std::wcout << L"  3. Address -> Module+Offset (resolve runtime address)\n";
+        std::wcout << L"  4. Export structure with live values\n";
         std::wcout << L"  0. Exit\n";
         std::wcout << L"\n  Commands: 'debug' - toggle debug | 'debugfile' - toggle file log\n\n";
 
@@ -117,6 +122,14 @@ void ConsoleUI::ShowMainMenu()
             DBG_STEP(L"Entering Module Dumper Menu");
             ShowModuleDumperMenu();
             break;
+        case 3:
+            DBG_STEP(L"Entering Address -> Module+Offset flow");
+            AddressToModuleOffsetFlow();
+            break;
+        case 4:
+            DBG_STEP(L"Entering Export Structure Flow");
+            ExportStructureFlow();
+            break;
         case 0:
             DBG_INFO(L"Exiting application");
             DebugLog::DisableFileLogging(); // Закрываем файл при выходе
@@ -126,6 +139,203 @@ void ConsoleUI::ShowMainMenu()
             Pause();
         }
     }
+}
+
+// ============================================================================
+// Address -> Module+Offset Flow
+// ============================================================================
+
+static bool CopyToClipboard(const std::wstring &text)
+{
+    if (!OpenClipboard(nullptr))
+        return false;
+
+    EmptyClipboard();
+
+    size_t sizeInBytes = (text.size() + 1) * sizeof(wchar_t);
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, sizeInBytes);
+    if (!hMem)
+    {
+        CloseClipboard();
+        return false;
+    }
+
+    void *ptr = GlobalLock(hMem);
+    if (!ptr)
+    {
+        GlobalFree(hMem);
+        CloseClipboard();
+        return false;
+    }
+
+    memcpy(ptr, text.c_str(), sizeInBytes);
+    GlobalUnlock(hMem);
+
+    if (!SetClipboardData(CF_UNICODETEXT, hMem))
+    {
+        GlobalFree(hMem);
+        CloseClipboard();
+        return false;
+    }
+
+    CloseClipboard();
+    return true;
+}
+
+void ConsoleUI::AddressToModuleOffsetFlow()
+{
+    ClearScreen();
+    std::wcout << L"====================================================\n";
+    std::wcout << L"        Resolve Runtime Address -> Module+Offset     \n";
+    std::wcout << L"====================================================\n\n";
+
+    std::wstring processName = GetInput(L"Enter process name (e.g., example.exe)");
+
+    if (!m_processManager.AttachToProcess(processName))
+    {
+        Pause();
+        return;
+    }
+
+    m_memoryReader.SetProcessHandle(m_processManager.GetHandle());
+
+    if (!m_moduleRegistry.LoadModules(m_processManager.GetPID()))
+    {
+        Pause();
+        return;
+    }
+
+    // Read runtime address
+    std::wstring inputAddr = GetInput(L"Enter runtime address (hex, e.g., 0x7FADAA999)");
+    // normalize: remove whitespace
+    inputAddr.erase(std::remove_if(inputAddr.begin(), inputAddr.end(), ::iswspace), inputAddr.end());
+
+    if (inputAddr.empty())
+    {
+        std::wcout << L"[-] Empty address input.\n";
+        Pause();
+        return;
+    }
+
+    // remove 0x if present
+    bool isHex = false;
+    if (inputAddr.size() > 2 && (inputAddr.substr(0, 2) == L"0x" || inputAddr.substr(0, 2) == L"0X"))
+    {
+        inputAddr = inputAddr.substr(2);
+        isHex = true;
+    }
+
+    // Parse as hex
+    uintptr_t runtimeAddr = 0;
+    try
+    {
+        runtimeAddr = std::stoull(inputAddr, nullptr, 16);
+    }
+    catch (...)
+    {
+        std::wcout << L"[-] Invalid address format. Use hex like 0x7F...\n";
+        Pause();
+        return;
+    }
+
+    // Optional module override
+    std::wstring moduleInput = GetInput(L"Optional: specify module name (or press Enter to auto-detect)");
+
+    ModuleInfo foundModule;
+    bool moduleResolved = false;
+
+    if (!moduleInput.empty())
+    {
+        if (!m_moduleRegistry.FindModule(moduleInput, foundModule))
+        {
+            std::wcout << L"[-] Specified module not found: " << moduleInput << L"\n";
+            Pause();
+            return;
+        }
+        moduleResolved = true;
+    }
+    else
+    {
+        // Auto-detect
+        for (const auto &mod : m_moduleRegistry.GetModules())
+        {
+            if (runtimeAddr >= mod.baseAddress && runtimeAddr < (mod.baseAddress + mod.size))
+            {
+                foundModule = mod;
+                moduleResolved = true;
+                break;
+            }
+        }
+    }
+
+    if (!moduleResolved)
+    {
+        std::wcout << L"[-] Address does not belong to any loaded module.\n";
+        std::wcout << L"     Ensure correct process/module list and architecture.\n";
+        Pause();
+        return;
+    }
+
+    // Compute offset
+    if (runtimeAddr < foundModule.baseAddress)
+    {
+        std::wcout << L"[-] Runtime address is below module base.\n";
+        Pause();
+        return;
+    }
+
+    uintptr_t offset = runtimeAddr - foundModule.baseAddress;
+
+    // Prepare outputs
+    std::wstringstream ss;
+    ss << L"Module: " << foundModule.name << L"\n";
+    ss << L"Base:   0x" << std::hex << std::uppercase << foundModule.baseAddress << L"\n";
+    ss << L"Offset: 0x" << std::hex << std::uppercase << offset << L"\n\n";
+    ss << L"Result (display):\n";
+
+    // Cheat Engine style: module+111 (no 0x)
+    ss << foundModule.name << L"+" << std::hex << std::uppercase << offset << L"\n";
+    // IDA style
+    ss << L"imagebase + 0x" << std::hex << std::uppercase << offset << L"\n";
+    // Ghidra style
+    ss << L"<Program Image Base> + 0x" << std::hex << std::uppercase << offset << L"\n";
+
+    std::wcout << ss.str() << std::endl;
+
+    // Offer copy to clipboard
+    std::wcout << L"Copy which format to clipboard? (1=CE,2=IDA,3=Ghidra,0=none): ";
+    std::wstring choice;
+    std::getline(std::wcin, choice);
+
+    std::wstring toCopy;
+    if (choice == L"1")
+    {
+        std::wstringstream s2;
+        s2 << foundModule.name << L"+" << std::hex << std::uppercase << offset;
+        toCopy = s2.str();
+    }
+    else if (choice == L"2")
+    {
+        std::wstringstream s2;
+        s2 << L"imagebase + 0x" << std::hex << std::uppercase << offset;
+        toCopy = s2.str();
+    }
+    else if (choice == L"3")
+    {
+        std::wstringstream s2;
+        s2 << L"<Program Image Base> + 0x" << std::hex << std::uppercase << offset;
+        toCopy = s2.str();
+    }
+
+    if (!toCopy.empty())
+    {
+        if (CopyToClipboard(toCopy))
+            std::wcout << L"[+] Copied to clipboard: " << toCopy << L"\n";
+        else
+            std::wcout << L"[-] Failed to copy to clipboard.\n";
+    }
+
+    Pause();
 }
 
 void ConsoleUI::ShowPointerChainManagerMenu()
@@ -555,6 +765,235 @@ void ConsoleUI::SaveChainsToFileFlow()
         std::wcout << L"[-] Failed to save chains to file.\n";
     }
 
+    Pause();
+}
+
+void ConsoleUI::ExportStructureFlow()
+{
+    ClearScreen();
+    std::wcout << L"====================================================\n";
+    std::wcout << L"         Export Memory Structure to File             \n";
+    std::wcout << L"====================================================\n\n";
+
+    // Check if attached to process
+    if (!m_processManager.IsAttached())
+    {
+        std::wcout << L"[!] Not attached to any process.\n";
+        std::wstring processName = GetInput(L"Enter process name (e.g., example.exe)");
+
+        if (!m_processManager.AttachToProcess(processName))
+        {
+            Pause();
+            return;
+        }
+
+        m_memoryReader.SetProcessHandle(m_processManager.GetHandle());
+        m_moduleRegistry.LoadModules(m_processManager.GetPID());
+    }
+
+    std::wcout << L"[+] Process: " << m_processManager.GetProcessName()
+               << L" (PID: " << m_processManager.GetPID() << L")\n\n";
+
+    // Get structure address
+    uintptr_t structAddress = GetHexInput(L"Enter structure base address (hex, e.g., 0x7FF12345)");
+
+    if (structAddress == 0)
+    {
+        std::wcout << L"[-] Invalid address.\n";
+        Pause();
+        return;
+    }
+
+    // Get structure size
+    std::wcout << L"Enter structure size in bytes (default 256): ";
+    std::wstring sizeInput;
+    std::getline(std::wcin, sizeInput);
+
+    size_t structSize = 256;
+    if (!sizeInput.empty())
+    {
+        try
+        {
+            structSize = std::stoull(sizeInput);
+        }
+        catch (...)
+        {
+            std::wcout << L"[-] Invalid size, using default 256 bytes.\n";
+            structSize = 256;
+        }
+    }
+
+    // Limit size to reasonable value
+    if (structSize > 65536)
+    {
+        std::wcout << L"[!] Size limited to 64KB.\n";
+        structSize = 65536;
+    }
+
+    // Read memory
+    std::vector<uint8_t> buffer(structSize);
+    if (!m_memoryReader.ReadMemory(structAddress, buffer.data(), structSize))
+    {
+        std::wcout << L"[-] Failed to read memory at address 0x" << std::hex << structAddress << std::dec << L"\n";
+        Pause();
+        return;
+    }
+
+    std::wcout << L"[+] Read " << structSize << L" bytes from 0x" << std::hex << structAddress << std::dec << L"\n\n";
+
+    // Get filename
+    std::wstring defaultName = L"structure_export.txt";
+    if (m_processManager.IsAttached())
+    {
+        std::wstringstream ss;
+        ss << m_processManager.GetProcessName() << L"_struct_0x" << std::hex << structAddress << L".txt";
+        defaultName = ss.str();
+    }
+
+    std::wcout << L"Default filename: " << defaultName << L"\n";
+    std::wstring filename = GetInput(L"Enter filename (or press Enter for default)");
+
+    if (filename.empty())
+    {
+        filename = defaultName;
+    }
+
+    // Export to file
+    std::wofstream file(filename);
+    if (!file.is_open())
+    {
+        std::wcout << L"[-] Failed to create file: " << filename << L"\n";
+        Pause();
+        return;
+    }
+
+    // Get current time
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+
+    // Write header
+    file << L"================================================================================\n";
+    file << L"                    Memory Structure Export                                     \n";
+    file << L"================================================================================\n\n";
+
+    file << L"Export Date: " << st.wYear << L"-"
+         << std::setfill(L'0') << std::setw(2) << st.wMonth << L"-"
+         << std::setfill(L'0') << std::setw(2) << st.wDay << L" "
+         << std::setfill(L'0') << std::setw(2) << st.wHour << L":"
+         << std::setfill(L'0') << std::setw(2) << st.wMinute << L":"
+         << std::setfill(L'0') << std::setw(2) << st.wSecond << L"\n";
+
+    file << L"Process: " << m_processManager.GetProcessName()
+         << L" (PID: " << m_processManager.GetPID() << L")\n";
+    file << L"Base Address: 0x" << std::hex << std::uppercase << structAddress << std::dec << L"\n";
+    file << L"Size: " << structSize << L" bytes\n";
+    file << L"\n================================================================================\n\n";
+
+    // Write structure data with different interpretations
+    file << L"Offset      Address           Hex (bytes)      | Int32       | Float       | Pointer          | ASCII\n";
+    file << L"----------- ----------------- ---------------- | ----------- | ----------- | ---------------- | --------\n";
+
+    for (size_t offset = 0; offset < structSize; offset += 4)
+    {
+        uintptr_t currentAddr = structAddress + offset;
+
+        // Offset
+        file << L"0x" << std::hex << std::setw(8) << std::setfill(L'0') << offset << L"  ";
+
+        // Address
+        file << L"0x" << std::hex << std::setw(12) << std::setfill(L'0') << currentAddr << L"  ";
+
+        // Hex bytes (4 bytes)
+        for (size_t i = 0; i < 4 && (offset + i) < structSize; ++i)
+        {
+            file << std::hex << std::setw(2) << std::setfill(L'0') << static_cast<int>(buffer[offset + i]) << L" ";
+        }
+        // Padding if less than 4 bytes
+        for (size_t i = structSize - offset; i < 4 && (offset + i) >= structSize; ++i)
+        {
+            file << L"   ";
+        }
+        file << L" | ";
+
+        // Int32 value
+        if (offset + 4 <= structSize)
+        {
+            int32_t intVal = *reinterpret_cast<int32_t *>(&buffer[offset]);
+            file << std::dec << std::setw(11) << std::setfill(L' ') << intVal;
+        }
+        else
+        {
+            file << L"           ";
+        }
+        file << L" | ";
+
+        // Float value
+        if (offset + 4 <= structSize)
+        {
+            float floatVal = *reinterpret_cast<float *>(&buffer[offset]);
+            // Check for valid float
+            if (std::isfinite(floatVal) && std::abs(floatVal) < 1e10 && std::abs(floatVal) > 1e-10)
+            {
+                file << std::fixed << std::setprecision(4) << std::setw(11) << floatVal;
+            }
+            else if (floatVal == 0.0f)
+            {
+                file << L"    0.0000 ";
+            }
+            else
+            {
+                file << L"     N/A   ";
+            }
+        }
+        else
+        {
+            file << L"           ";
+        }
+        file << L" | ";
+
+        // Pointer value (for x64)
+        if (offset + 8 <= structSize)
+        {
+            uintptr_t ptrVal = *reinterpret_cast<uintptr_t *>(&buffer[offset]);
+            if (ptrVal > 0x10000 && ptrVal < 0x7FFFFFFFFFFF)
+            {
+                file << L"0x" << std::hex << std::setw(14) << std::setfill(L'0') << ptrVal;
+            }
+            else
+            {
+                file << L"                ";
+            }
+        }
+        else
+        {
+            file << L"                ";
+        }
+        file << L" | ";
+
+        // ASCII representation
+        for (size_t i = 0; i < 4 && (offset + i) < structSize; ++i)
+        {
+            char c = static_cast<char>(buffer[offset + i]);
+            if (c >= 32 && c < 127)
+            {
+                file << static_cast<wchar_t>(c);
+            }
+            else
+            {
+                file << L'.';
+            }
+        }
+
+        file << L"\n";
+    }
+
+    file << L"\n================================================================================\n";
+    file << L"                              End of Export                                     \n";
+    file << L"================================================================================\n";
+
+    file.close();
+
+    std::wcout << L"[+] Structure exported to: " << filename << L"\n";
     Pause();
 }
 

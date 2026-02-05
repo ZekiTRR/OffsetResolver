@@ -22,6 +22,7 @@ out/
 *.user
 *.userosscache
 *.sln.docstates
+.github/
 
 # CMake
 CMakeCache.txt
