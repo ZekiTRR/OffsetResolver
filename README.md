@@ -1,4 +1,6 @@
-﻿# Process Module & Memory Analysis Tool
+# Русская версия - [[README_RU.md]]
+ 
+# Process Module & Memory Analysis Tool
 
 C++ tool for memory analysis, module tracking, and pointer chain resolution in running processes.
 
