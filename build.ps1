@@ -7,19 +7,8 @@ Write-Host "              Build Script                         " -ForegroundColo
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Source files
-$sources = @(
-    "main.cpp",
-    "ProcessManager.cpp",
-    "ModuleRegistry.cpp",
-    "AddressResolver.cpp",
-    "OffsetStorage.cpp",
-    "MemoryReader.cpp",
-    "PointerChainResolver.cpp",
-    "PointerChainStorage.cpp",
-    "ConsoleUI.cpp",
-    "DebugLog.cpp"
-)
+# Auto-detect source files
+$sources = @(Get-ChildItem "src/*.cpp" | ForEach-Object { $_.FullName })
 
 $output = "ProcessModuleManager.exe"
 
@@ -59,7 +48,7 @@ if ([string]::IsNullOrEmpty($vsPath)) {
         "C:\Program Files\Microsoft Visual Studio\2022\Community",
         "C:\Program Files\Microsoft Visual Studio\2022\Professional"
     )
-    
+
     foreach ($path in $customPaths) {
         $testVcvars = "$path\VC\Auxiliary\Build\vcvars64.bat"
         if (Test-Path $testVcvars) {
@@ -87,7 +76,7 @@ if (-not (Test-Path $vcvars)) {
 Write-Host "[+] Configuring build environment..." -ForegroundColor Cyan
 
 # Compile
-$compileCmd = "cl /EHsc /std:c++17 /O2 /DUNICODE /D_UNICODE $($sources -join ' ') /Fe:$output"
+$compileCmd = "cl /EHsc /std:c++17 /O2 /DUNICODE /D_UNICODE /Isrc $($sources -join ' ') /Fe:$output"
 
 Write-Host "[+] Compiling..." -ForegroundColor Cyan
 Write-Host "    Command: $compileCmd" -ForegroundColor DarkGray
@@ -103,10 +92,10 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "====================================================" -ForegroundColor Green
     Write-Host ""
     Write-Host "[+] Output: $output" -ForegroundColor Green
-    
+
     # Clean up intermediate files
     Remove-Item *.obj -ErrorAction SilentlyContinue
-    
+
     Write-Host ""
     Write-Host "To run the program:" -ForegroundColor Cyan
     Write-Host "    .\$output" -ForegroundColor White
