@@ -4,6 +4,7 @@
 #include "MemoryReader.h"
 #include "PointerChainResolver.h"
 #include "PointerChainStorage.h"
+#include "PointerScanner.h"
 #include <string>
 
 // ============================================================================
@@ -20,6 +21,7 @@ private:
     MemoryReader &m_memoryReader;
     PointerChainResolver &m_pointerChainResolver;
     PointerChainStorage &m_pointerChainStorage;
+    PointerScanner m_pointerScanner;
 
 public:
     ConsoleUI(ProcessManager &pm, ModuleRegistry &mr,

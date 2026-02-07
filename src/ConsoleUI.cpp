@@ -1,5 +1,6 @@
 #include "ConsoleUI.h"
 #include "DebugLog.h"
+#define NOMINMAX
 #include <windows.h>
 #include <algorithm>
 #pragma comment(lib, "user32.lib")
@@ -23,7 +24,8 @@ static ValueType StringToValueType(const std::string &str)
 ConsoleUI::ConsoleUI(ProcessManager &pm, ModuleRegistry &mr,
                      MemoryReader &mr2, PointerChainResolver &pcr, PointerChainStorage &pcs)
     : m_processManager(pm), m_moduleRegistry(mr),
-      m_memoryReader(mr2), m_pointerChainResolver(pcr), m_pointerChainStorage(pcs)
+      m_memoryReader(mr2), m_pointerChainResolver(pcr), m_pointerChainStorage(pcs),
+      m_pointerScanner(&mr2)
 {
     // Set locale for proper character display
     setlocale(LC_ALL, "");
@@ -830,6 +832,31 @@ void ConsoleUI::ExportStructureFlow()
         structSize = 65536;
     }
 
+    // Get pointer depth level
+    int pointerDepth = 0;
+    std::wcout << L"Enter pointer reading depth level (0=no pointers, 1-5 levels deep, default 0): ";
+    std::wstring depthInput;
+    std::getline(std::wcin, depthInput);
+
+    if (!depthInput.empty())
+    {
+        try
+        {
+            pointerDepth = std::stoi(depthInput);
+            if (pointerDepth < 0)
+                pointerDepth = 0;
+            if (pointerDepth > 5)
+            {
+                std::wcout << L"[!] Depth limited to 5 levels.\n";
+                pointerDepth = 5;
+            }
+        }
+        catch (...)
+        {
+            pointerDepth = 0;
+        }
+    }
+
     // Read memory
     std::vector<uint8_t> buffer(structSize);
     if (!m_memoryReader.ReadMemory(structAddress, buffer.data(), structSize))
@@ -839,7 +866,18 @@ void ConsoleUI::ExportStructureFlow()
         return;
     }
 
-    std::wcout << L"[+] Read " << structSize << L" bytes from 0x" << std::hex << structAddress << std::dec << L"\n\n";
+    std::wcout << L"[+] Read " << structSize << L" bytes from 0x" << std::hex << structAddress << std::dec << L"\n";
+
+    // Scan for pointers if depth > 0
+    StructurePointers pointerData;
+    if (pointerDepth > 0)
+    {
+        std::wcout << L"[*] Scanning for pointers at depth " << pointerDepth << L"...\n";
+        pointerData = m_pointerScanner.ScanStructure(structAddress, buffer, pointerDepth);
+        std::wcout << L"[+] Found " << pointerData.pointers.size() << L" pointers.\n";
+    }
+
+    std::wcout << L"\n";
 
     // Get filename
     std::wstring defaultName = L"structure_export.txt";
@@ -887,6 +925,7 @@ void ConsoleUI::ExportStructureFlow()
          << L" (PID: " << m_processManager.GetPID() << L")\n";
     file << L"Base Address: 0x" << std::hex << std::uppercase << structAddress << std::dec << L"\n";
     file << L"Size: " << structSize << L" bytes\n";
+    file << L"Pointer Depth Level: " << pointerDepth << L"\n";
     file << L"\n================================================================================\n\n";
 
     // Write structure data with different interpretations
@@ -987,7 +1026,86 @@ void ConsoleUI::ExportStructureFlow()
         file << L"\n";
     }
 
-    file << L"\n================================================================================\n";
+    file << L"\n";
+
+    // Write pointer information if pointers were found
+    if (pointerDepth > 0 && !pointerData.pointers.empty())
+    {
+        file << L"\n================================================================================\n";
+        file << L"                         POINTER ANALYSIS                                     \n";
+        file << L"================================================================================\n\n";
+
+        file << L"Total pointers found: " << pointerData.pointers.size() << L"\n";
+        file << L"Pointer reading depth: " << pointerDepth << L"\n\n";
+
+        // For each pointer, write detailed information
+        for (size_t i = 0; i < pointerData.pointers.size(); ++i)
+        {
+            const PointerInfo &ptrInfo = pointerData.pointers[i];
+
+            file << L"[POINTER #" << (i + 1) << L"]\n";
+            file << L"  Offset in structure:  0x" << std::hex << std::setw(8) << std::setfill(L'0') << ptrInfo.offset << std::dec << L"\n";
+            file << L"  Address in memory:    0x" << std::hex << std::setw(16) << std::setfill(L'0') << (structAddress + ptrInfo.offset) << std::dec << L"\n";
+            file << L"  Pointer value:        0x" << std::hex << std::setw(16) << std::setfill(L'0') << ptrInfo.pointerValue << std::dec << L"\n";
+
+            if (!ptrInfo.chain.empty())
+            {
+                file << L"  Pointer chain:        ";
+                for (size_t j = 0; j < ptrInfo.chain.size(); ++j)
+                {
+                    if (j > 0)
+                        file << L" -> ";
+                    file << L"0x" << std::hex << std::setfill(L'0') << std::setw(16) << ptrInfo.chain[j] << std::dec;
+                }
+                file << L"\n";
+            }
+
+            file << L"  Status:               " << (ptrInfo.isValid ? L"VALID" : L"INVALID") << L"\n";
+
+            if (!ptrInfo.errorMessage.empty())
+            {
+                file << L"  Error:                " << ptrInfo.errorMessage << L"\n";
+            }
+
+            // Write data read from pointer
+            if (!ptrInfo.data.empty())
+            {
+                file << L"  Data at pointer (first 64 bytes):\n";
+                file << L"    ";
+
+                // Hex view
+                size_t hexSize = (std::min)(size_t(64), ptrInfo.data.size());
+                for (size_t j = 0; j < hexSize; ++j)
+                {
+                    if (j > 0 && j % 16 == 0)
+                        file << L"\n    ";
+                    file << std::hex << std::setw(2) << std::setfill(L'0') << static_cast<int>(ptrInfo.data[j]) << L" ";
+                }
+                file << std::dec << L"\n\n";
+
+                // ASCII view
+                file << L"    ASCII: ";
+                size_t asciiSize = (std::min)(size_t(16), ptrInfo.data.size());
+                for (size_t j = 0; j < asciiSize; ++j)
+                {
+                    char c = static_cast<char>(ptrInfo.data[j]);
+                    if (c >= 32 && c < 127)
+                    {
+                        file << static_cast<wchar_t>(c);
+                    }
+                    else
+                    {
+                        file << L'.';
+                    }
+                }
+                file << L"\n";
+            }
+
+            file << L"\n";
+        }
+    }
+
+    file << L"================================================================================\n";
     file << L"                              End of Export                                     \n";
     file << L"================================================================================\n";
 
