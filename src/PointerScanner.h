@@ -59,6 +59,6 @@ private:
 
     // Constants for pointer validation
     static constexpr uintptr_t MIN_VALID_ADDRESS = 0x10000;
-    static constexpr uintptr_t MAX_VALID_ADDRESS = 0x7FFFFFFF0000;
-    static constexpr size_t POINTER_READ_SIZE = 256; // How many bytes to read from dereferenced pointer
+    static constexpr uintptr_t MAX_VALID_ADDRESS = 0x7FFFFFFEFFFF; // Canonical x64 limit
+    static constexpr size_t POINTER_READ_SIZE = 256;               // How many bytes to read from dereferenced pointer
 };

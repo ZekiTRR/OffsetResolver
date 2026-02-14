@@ -2,6 +2,7 @@
 #include "DebugLog.h"
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 MemoryReader::MemoryReader(HANDLE processHandle)
     : m_processHandle(processHandle), m_logErrors(true)
@@ -63,18 +64,6 @@ bool MemoryReader::ReadMemory(uintptr_t address, void *buffer, size_t size)
         return false;
     }
 
-    // Validate address before reading
-    if (!IsValidAddress(address))
-    {
-        DBG_ERR(L"Invalid address validation failed");
-        if (m_logErrors)
-        {
-            std::wcerr << L"[MemoryReader] Invalid address: 0x"
-                       << std::hex << address << std::dec << std::endl;
-        }
-        return false;
-    }
-
     SIZE_T bytesRead = 0;
     BOOL result = ReadProcessMemory(
         m_processHandle,
@@ -86,12 +75,27 @@ bool MemoryReader::ReadMemory(uintptr_t address, void *buffer, size_t size)
     if (!result || bytesRead != size)
     {
         DWORD lastError = GetLastError();
-        DBG_ERR(L"ReadProcessMemory failed, error code: " + std::to_wstring(lastError));
+        std::wostringstream hexStream;
+        hexStream << L"0x" << std::hex << address;
+        DBG_ERR(L"ReadProcessMemory failed at address: " + hexStream.str() +
+                L", error code: " + std::to_wstring(lastError));
         if (m_logErrors)
         {
-            std::wcerr << L"[MemoryReader] Failed to read from 0x"
-                       << std::hex << address << std::dec << L" (bytes: "
-                       << bytesRead << L"/" << size << L", error: " << lastError << L")" << std::endl;
+            std::wcerr << L"[MemoryReader] ReadProcessMemory failed:\n"
+                       << L"  Address: 0x" << std::hex << address << std::dec << L"\n"
+                       << L"  Expected bytes: " << size << L"\n"
+                       << L"  Actual bytes read: " << bytesRead << L"\n"
+                       << L"  Windows error: " << lastError;
+
+            if (lastError == ERROR_PARTIAL_COPY)
+            {
+                std::wcerr << L" (ERROR_PARTIAL_COPY: Address may be invalid/inaccessible)";
+            }
+            else if (lastError == ERROR_INVALID_PARAMETER)
+            {
+                std::wcerr << L" (ERROR_INVALID_PARAMETER: Invalid handle or parameters)";
+            }
+            std::wcerr << L"\n";
         }
         return false;
     }
