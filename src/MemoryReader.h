@@ -56,5 +56,5 @@ private:
 
     // x64 user-space memory limits
     static constexpr uintptr_t MIN_VALID_ADDRESS = 0x10000;
-    static constexpr uintptr_t MAX_VALID_ADDRESS = 0x7FFFFFFF0000;
+    static constexpr uintptr_t MAX_VALID_ADDRESS = 0x7FFFFFFEFFFF; // Canonical x64 limit
 };
