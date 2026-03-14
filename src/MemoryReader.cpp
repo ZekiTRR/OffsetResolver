@@ -1,5 +1,6 @@
 #include "MemoryReader.h"
 #include "DebugLog.h"
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -50,9 +51,26 @@ uintptr_t MemoryReader::ReadPointer(uintptr_t address, bool &success)
     return value;
 }
 
+static bool IsReadableProtection(DWORD protect)
+{
+    const DWORD baseProtect = protect & 0xFF;
+    switch (baseProtect)
+    {
+    case PAGE_READONLY:
+    case PAGE_READWRITE:
+    case PAGE_WRITECOPY:
+    case PAGE_EXECUTE_READ:
+    case PAGE_EXECUTE_READWRITE:
+    case PAGE_EXECUTE_WRITECOPY:
+        return true;
+    default:
+        return false;
+    }
+}
+
 bool MemoryReader::ReadMemory(uintptr_t address, void *buffer, size_t size)
 {
-    // Проверяем handle перед чтением
+    // Check handle before reading
     if (m_processHandle == NULL || m_processHandle == INVALID_HANDLE_VALUE)
     {
         DBG_ERR(L"Process handle is invalid!");
@@ -64,10 +82,24 @@ bool MemoryReader::ReadMemory(uintptr_t address, void *buffer, size_t size)
         return false;
     }
 
+    if (!IsValidAddress(address, size))
+    {
+        std::wostringstream hexStream;
+        hexStream << L"0x" << std::hex << address;
+        DBG_ERR(L"Rejected invalid or unreadable memory range at address: " + hexStream.str());
+        if (m_logErrors)
+        {
+            std::wcerr << L"[MemoryReader] Address range is not readable:\n"
+                       << L"  Address: 0x" << std::hex << address << std::dec << L"\n"
+                       << L"  Size: " << size << L"\n";
+        }
+        return false;
+    }
+
     SIZE_T bytesRead = 0;
     BOOL result = ReadProcessMemory(
         m_processHandle,
-        (LPCVOID)address,
+        reinterpret_cast<LPCVOID>(address),
         buffer,
         size,
         &bytesRead);
@@ -103,9 +135,74 @@ bool MemoryReader::ReadMemory(uintptr_t address, void *buffer, size_t size)
     return true;
 }
 
-bool MemoryReader::IsValidAddress(uintptr_t address) const
+bool MemoryReader::IsValidAddress(uintptr_t address, size_t size) const
 {
-    return address >= MIN_VALID_ADDRESS && address <= MAX_VALID_ADDRESS;
+    if (m_processHandle == NULL || m_processHandle == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+
+    if (size == 0)
+    {
+        return true;
+    }
+
+    if (address < MIN_VALID_ADDRESS || address > MAX_VALID_ADDRESS)
+    {
+        return false;
+    }
+
+    if (size - 1 > MAX_VALID_ADDRESS - address)
+    {
+        return false;
+    }
+
+    uintptr_t current = address;
+    size_t remaining = size;
+
+    while (remaining > 0)
+    {
+        MEMORY_BASIC_INFORMATION mbi{};
+        const SIZE_T querySize = VirtualQueryEx(
+            m_processHandle,
+            reinterpret_cast<LPCVOID>(current),
+            &mbi,
+            sizeof(mbi));
+
+        if (querySize != sizeof(mbi))
+        {
+            return false;
+        }
+
+        if (mbi.State != MEM_COMMIT)
+        {
+            return false;
+        }
+
+        if ((mbi.Protect & PAGE_GUARD) != 0 || (mbi.Protect & PAGE_NOACCESS) != 0)
+        {
+            return false;
+        }
+
+        if (!IsReadableProtection(mbi.Protect))
+        {
+            return false;
+        }
+
+        const uintptr_t regionBase = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
+        const uintptr_t regionEnd = regionBase + mbi.RegionSize;
+        if (regionEnd <= current)
+        {
+            return false;
+        }
+
+        const size_t readableInRegion = static_cast<size_t>(regionEnd - current);
+        const size_t consumed = (std::min)(remaining, readableInRegion);
+        remaining -= consumed;
+        current += consumed;
+    }
+
+    return true;
 }
 
 std::wstring MemoryValue::ToString() const

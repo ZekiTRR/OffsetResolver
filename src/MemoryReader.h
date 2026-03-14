@@ -47,7 +47,7 @@ public:
     bool ReadMemory(uintptr_t address, void *buffer, size_t size);
 
     // Address validation
-    bool IsValidAddress(uintptr_t address) const;
+    bool IsValidAddress(uintptr_t address, size_t size = 1) const;
     void SetLogErrors(bool enabled) { m_logErrors = enabled; }
 
 private:
